@@ -1,6 +1,8 @@
 # Standart I/O library for WLJS
 *written with love in Javascript*
 
+***Warning: Early Development Stage!***
+
 __This is a core component of [Wolfram JS Frontend](https://github.com/JerryI/wolfram-js-frontend) project__
 but one can try to use it independently as well
 
