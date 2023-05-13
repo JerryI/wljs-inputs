@@ -1,0 +1,34 @@
+{
+  "name": "wljs-inputs",
+  "version": "0.0.1",
+  "description": "sliders and other inputs for WLJS",
+  "scripts": {
+    "build": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs",
+    "watch": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs -w"
+  },
+  "wljs-meta": {
+    "jsmodule": "dist/kernel.js",
+    "wlkernel": "src/kernel.wl",
+    "styles": "src/styles.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JerryI/wljs-inputs"
+  },
+  "author": "Kirill Vasin",
+  "license": "GPL",
+  "bugs": {
+    "url": "https://github.com/JerryI/wljs-inputs/issues"
+  },
+  "homepage": "https://github.com/JerryI/wljs-inputs#readme",
+  "dependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-json": "^6.0.0",
+    "@rollup/plugin-node-resolve": "15.0.1",
+    "pako": "^2.1.0",
+    "rollup": "^3.20.6",
+    "rollup-plugin-combine": "^2.1.1",
+    "serve-static": "^1.14.1",
+    "systemjs": "^6.14.1"
+  }
+}
