@@ -211,6 +211,8 @@ Here is an example of two fields, where one shows the result and other one is us
 
 While typing in the first field, one can see an inversed string in the second one.
 
+# References
+[Obervable Inputs](https://observablehq.com/@observablehq/inputs)
 
 # License
 
