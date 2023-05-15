@@ -54,6 +54,13 @@ text = InputText["Hi"]
 
 ![Text](imgs/text.png)
 
+### Inline Event-Binding
+One can also bind to the function in-place without declaration of a new symbol
+
+```mathematica
+EventHandler[InputText["Hi"], (Print[#] &)]
+```
+
 ### Select
 🚧 in dev 
 
