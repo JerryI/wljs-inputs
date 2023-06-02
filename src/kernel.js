@@ -12,7 +12,7 @@ core.RangeView = async function(args, env) {
 
     range[3] = await range[3];
 
-    const options = core._getRules(args, env);
+    const options = await core._getRules(args, env);
 
     let label = '';
     if (options.Label) {
@@ -52,12 +52,16 @@ core.RangeView = async function(args, env) {
     if (options.Event) {
         const evid = options.Event;
 
+        const update = throttle((val) => {
+            server.emitt(evid, val);
+        });
+
         enumber.addEventListener('input', (e)=>{
-            server.emitt(evid, enumber.value);
+            update(enumber.value);
         });
 
         erange.addEventListener('input', (e)=>{
-            server.emitt(evid, erange.value);
+            update(erange.value);
         });  
     } 
     
@@ -99,8 +103,8 @@ core.RangeView.update = async (args, env) => {
 core.RangeView.destroy = (args, env) => { /* propagate further */ interpretate(args[0], env)}
 
 //just as input
-core.ButtonView = (args, env) => {
-    const options = core._getRules(args, env);
+core.ButtonView = async (args, env) => {
+    const options = await core._getRules(args, env);
 
     const uid = options.Event;
 
@@ -120,8 +124,8 @@ core.ButtonView.update = () => {}
 core.ButtonView.destroy = () => {}
 
 //just as input
-core.FileUploadView = (args, env) => {
-    const options = core._getRules(args, env);
+core.FileUploadView = async (args, env) => {
+    const options = await core._getRules(args, env);
 
     const uid = options.Event;
 
@@ -276,7 +280,7 @@ core.FileUploadView.destroy = () => {}
 
 //as input and output only
 core.ToggleView = async (args, env) => {
-    const options = core._getRules(args, env);
+    const options = await core._getRules(args, env);
     const uid =  uuidv4();
     const initial = await interpretate(args[0], env);
 
@@ -321,7 +325,7 @@ core.ToggleView.destroy = (args, env) => { /* propagate further */ interpretate(
 
 
 core.TextView = async (args, env) => {
-    const options = core._getRules(args, env);
+    const options = await core._getRules(args, env);
     const uid =  uuidv4();
 
     //detect FE
@@ -347,9 +351,12 @@ core.TextView = async (args, env) => {
     if (options.Event) {
         const evid = options.Event;
         
+        const update = throttle((val) => {
+            server.emitt(evid, `"${val}"`);
+        });
 
         input.addEventListener('input', ()=>{
-            server.emitt(evid, `"${input.value}"`);
+            update(input.value);
         });
     }
 
