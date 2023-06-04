@@ -7048,9 +7048,9 @@ core.TextView.update = async (args, env) => {
 
 core.TextView.destroy = (args, env) => { interpretate(args[0], env); };
 
-core.Column = function(args, env) {
+core.Column = async function(args, env) {
 
-    const objects = interpretate(args[0], {...env, hold:true});
+    const objects = await interpretate(args[0], {...env, hold:true});
     console.log(objects);
     console.log(env);
 
@@ -7071,9 +7071,9 @@ core.Column = function(args, env) {
 core.Column.update = (args, env) => { /* just go to the inner three */ interpretate(args[0], env); };
 core.Column.destroy = (args, env) => { /* just go to the inner three */ interpretate(args[0], env); };
 
-core.Row = function(args, env) {
+core.Row = async function(args, env) {
 
-    const objects = interpretate(args[0], {...env, hold:true});
+    const objects = await interpretate(args[0], {...env, hold:true});
     console.log(objects);
     console.log(env);
 
@@ -7081,14 +7081,13 @@ core.Row = function(args, env) {
     wrapper.classList.add('row');
     env.element.appendChild(wrapper);
 
-    objects.forEach((e)=>{
+    for (const e of objects) {
         const child = document.createElement('div');
         child.classList.add('child');
 
-        interpretate(e, {...env, element: child});
+        await interpretate(e, {...env, element: child});
         wrapper.appendChild(child);
-    });
-
+    }
 };
 
 core.Row.update = (args, env) => { /* just go to the inner three */ interpretate(args[0], env); };
