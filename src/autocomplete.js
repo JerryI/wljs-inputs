@@ -32,7 +32,13 @@ window.EditorAutocomplete.extend([
         "label":"InputGroup",
         "type":"keyword",
         "info":"InputGroup[list_Association | List] make a group of EventObjects with visible view and generate a single EventObject, that acts like a harness keeping the order or keys of involved event objects."
-    }    
+    } ,
+    
+    {
+        "label":"RangeView",
+        "type":"keyword",
+        "info":"Frontend only: RangeView[{min, max, step, initial}] - slider representation, where initial can be a variable or a value"
+    }
 
 
 ])

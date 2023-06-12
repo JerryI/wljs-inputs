@@ -4,13 +4,35 @@ import { deflate } from 'pako';
 core.RangeView = async function(args, env) {
     const uid =   uuidv4();
 
-    const type   = core._typeof(args[0][4], env);
+    let type   = core._typeof(args[0][4], env);
     console.log('data typeof');
     console.log(type);
 
-    let range    = await interpretate(args[0], env);
+    let range    = await interpretate(args[0], {...env, hold: true});
 
-    range[3] = await range[3];
+    range[0] = await interpretate(range[0], env);
+    range[1] = await interpretate(range[1], env);
+    range[2] = await interpretate(range[2], env);
+    
+    if (isNumeric(range[3]) || typeof range[3] === 'number') {
+        console.warn('numerical value' + range[3] + 'is set for the slider');
+    } else {
+        console.warn('symbol' + range[3] + 'is set for the slider');
+
+        if (range[3] in core) {
+            range[3] = await interpretate(range[3], env);
+            if (core[range[3]].virtual) type = 'variable'; //override
+        } else {
+            console.warn('variable '+range[3]+' is undefined. setting to the middle of the range...');
+            await interpretate(["Set", range[3], range[2]*Math.floor((range[0] + range[1])/2/range[2])], env);
+            if (core[range[3]].virtual) type = 'variable'; //override
+            range[3] = range[2]*Math.floor((range[0] + range[1])/2/range[2]);
+        }
+        
+        
+    }
+    
+    //if (typeof range[3] != 'number') range[3] = Math.floor((range[0] + range[1])/2);
 
     const options = await core._getRules(args, env);
 
@@ -84,7 +106,38 @@ core.RangeView = async function(args, env) {
 
         //prevent from updating itself
         env.local.preventDefault = true;
-    }     
+
+        return;
+    }  
+    
+    //mutate variable
+    if (type == 'variable') {
+        console.warn('mutable variable detected');
+        console.warn(args[0][4]);
+
+        const name = args[0][4];
+
+
+        enumber.addEventListener('input', (e)=>{
+            core[name].data = Number(enumber.value);
+    
+            for (const inst of Object.values(core[name].instances)) {
+              inst.update();
+            };
+        });
+
+        erange.addEventListener('input', (e)=>{
+            core[name].data = Number(erange.value);
+    
+            for (const inst of Object.values(core[name].instances)) {
+              inst.update();
+            };
+        });        
+
+        //prevent from updating itself
+        env.local.preventDefault = true;
+    }    
+
 }
 
 
