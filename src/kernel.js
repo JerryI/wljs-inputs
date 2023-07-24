@@ -13,6 +13,8 @@ core.RangeView = async function(args, env) {
     range[0] = await interpretate(range[0], env);
     range[1] = await interpretate(range[1], env);
     range[2] = await interpretate(range[2], env);
+
+    if (range.length > 3) range[3] = await interpretate(range[3], env);
     
     if (isNumeric(range[3]) || typeof range[3] === 'number') {
         console.warn('numerical value' + range[3] + 'is set for the slider');
