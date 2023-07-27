@@ -1,6 +1,6 @@
 
 InputRange[min_, max_, step_:1, opts___] := Module[{view, script, id = CreateUUID[]},
-    EventObject[<|"id"->id, "initial"->(Round[(min+max)/2//N, step]), "view"->RangeView[{min, max, step, Round[(min+max)/2//N, step]}], "Event"->id, opts]|>]
+    EventObject[<|"id"->id, "initial"->(Round[(min+max)/2//N, step]), "view"->RangeView[{min, max, step, Round[(min+max)/2//N, step]}, "Event"->id, opts]|>]
 ];
 
 
