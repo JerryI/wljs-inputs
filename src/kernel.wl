@@ -1,6 +1,6 @@
 
 InputRange[min_, max_, step_:1, opts___] := Module[{view, script, id = CreateUUID[]},
-    EventObject[<|"id"->id, "initial"->(Round[(min+max)/2//N, step]), "view"->RangeView[{min, max, step, Round[(min+max)/2//N, step]}, "Event"->id, opts]|>]
+    EventObject[<|"id"->id, "initial"->(Round[(min+max)/2//N, step]), "view"->RangeView[{min, max, step, If[NumberQ[First[List[opts]]], First[List[opts]], Round[(min+max)/2//N, step]]}, "Event"->id, opts]|>]
 ];
 
 
@@ -64,59 +64,3 @@ CreateFrontEndObject[EventObject[assoc_], uid_] ^:= CreateFrontEndObject[assoc["
 
 Unprotect[Manipulate]
 ClearAll[Manipulate]
-
-SetAttributes[Manipulate, HoldAll]
-
-Manipulate[expr_, {symbol_,min_,max_,step_:1}] := 
-Module[{
-	serverSide = Null, 
-	clientSide=Null, 
-	target, 
-	objects = <||>,
-	function,
-	WrapperFunction,
-	CreateFrontEndObjectSafe,
-	FrontEndExecutableSafe,
-	createObjects,
-	firstRun,
-	panel,
-	slider,
-	show,
-	fakeTarget,
-	handler
-},
-
-	target = Cases[Hold[expr],
-		HoldPattern[CompoundExpression[expr1__,expr2_]] :> Hold[expr2],
-		All]//First;
-
-	createObjects[args__]:=(
-		(objects[CreateUUID[]] = <|"symbol"->Unique[], "data"->#|>) &/@ List[args]
-	);
-
-    firstRun = Module[{symbol = min}, expr] // Hold;
-	firstRun /. {Extract[target,1, Head] -> createObjects} // ReleaseHold;
-	
-	panel := With[{slider = CreateFrontEndObject[slider, "slider-"<>CreateUUID[]], show = CreateFrontEndObject[show, "show-"<>CreateUUID[]]},
-		CreateFrontEndObject[Column[{slider, show}, "column-"<>CreateUUID[]]]
-	];
-	
-	slider = Slider[min, max, step];
-	
-	show = function @@ (CreateFrontEndObject[objects[#, "data"], #] &/@ Keys[objects]);
-	show = With[{show = show}, FrontEndOnly[show]] /. {function -> Extract[target,1, Head]};
-	
-	fakeTarget = WrapperFunction[objects[#, "symbol"] &/@ Keys[objects], 
-		Table[With[{i = i}, SetFrontEndObject[i, objects[i, "symbol"] ] ], {i, Keys[objects]}] // SendToFrontEndHold
-	] /. {WrapperFunction -> Function} /. {SendToFrontEndHold -> SendToFrontEnd};
-
-    
-	
-	handler = (Function[symbol, expr]) /. {Extract[target,1,Head] -> fakeTarget};
-	EventBind[slider, handler];
-
-    ClearAll /@ (objects[#, "symbol"] &/@ Keys[objects]);
-  
-	
-	panel
-]
