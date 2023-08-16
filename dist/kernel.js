@@ -7011,57 +7011,15 @@ core.ToggleView = async (args, env) => {
 
     env.element.innerHTML = str;
 
-    const box = env.element.children[0].children[env.element.children[0].length - 1];
+    const box = document.getElementById(`oi-toggle-${uid}`);
 
     env.local.box = box;
 
-    if (options.Event) {
-        const evid = options.Event;
-
-        box.addEventListener('change', (event)=>{
-            if (event.currentTarget.checked)
-                server.emitt(evid, 'True');
-            else
-                server.emitt(evid, 'False');
-        });
-    }   
-
-};
-
-core.ToggleView.update = async (args, env) => {
-    const data = await interpretate(args[0], env);
-    env.local.box.checked = data;
-};
-
-core.ToggleView.destroy = (args, env) => { /* propagate further */ interpretate(args[0], env);};
-
-//as input and output only
-core.ToggleView = async (args, env) => {
-    const options = await core._getRules(args, env);
-    const uid =  uuidv4();
-    const initial = await interpretate(args[0], env);
-
-    let checked = '';
-    if (initial) checked = 'checked';
-
-    console.log('initial: ');
-    console.log(initial);
-
-    let label = '';
-    if (options.Label) label = options.Label;
-
-    let str = `<form class="oi-toggle">`;
-    if (label.length > 0) str += `<label for="oi-toggle-${uid}">${label}</label>`;
-    str += `<input class="oi-toggle-input" type="checkbox" name="input" id="oi-toggle-${uid}" ${checked}></form>`;
-
-    env.element.innerHTML = str;
-
-    const box = env.element.children[0].children[env.element.children[0].length - 1];
-
-    env.local.box = box;
+    console.log(box);
 
     if (options.Event) {
         const evid = options.Event;
+        console.log('event');
 
         box.addEventListener('change', (event)=>{
             if (event.currentTarget.checked)
