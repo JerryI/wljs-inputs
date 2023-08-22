@@ -7039,6 +7039,30 @@ core.ToggleView.update = async (args, env) => {
 core.ToggleView.destroy = (args, env) => { /* propagate further */ interpretate(args[0], env);};
 
 
+core.SpoilerView = async (args, env) => {
+    const wrapper = document.createElement('details');
+    
+    const opts = await core._getRules(args, env);
+  
+    if (opts.Label) {
+        const summary = document.createElement('summary');
+        summary.innerText = opts.Label;
+        wrapper.appendChild(summary);
+    }
+
+    const container = document.createElement('div');
+    
+    wrapper.appendChild(container);
+
+    await interpretate(args[0], {...env, element: container});
+
+    env.element.appendChild(wrapper);
+};
+
+core.SpoilerView.destroy = async (args, env) => {
+    await interpretate(args[0], env);
+};
+
 core.TextView = async (args, env) => {
     const options = await core._getRules(args, env);
     uuidv4();

@@ -20,6 +20,13 @@ InputFile[label_String:"Drop a File"] := Module[{view, script, id = CreateUUID[]
     EventObject[<|"id"->id, "initial"->Null, "view"->FileUploadView["Label"->label, "Event"->id]|>]
 ];
 
+InputSpoiler[EventObject[assoc_], opts___] := With[{fe = CreateFrontEndObject[assoc["view"]]},
+	EventObject[Join[assoc, <|"view"->SpoilerView[fe, opts]|>]]
+]
+
+InputSpoiler[expr_, opts___] := With[{fe = CreateFrontEndObject[expr]},
+	CreateFrontEndObject[SpoilerView[fe, opts]]
+]
 
 InputGroup[in_List] := Module[{view}, With[{evid = CreateUUID[]},
 	InputGroup[evid] = #[[1]]["initial"] &/@ in;
