@@ -36,7 +36,7 @@ window.EditorAutocomplete.extend([
     {
         "label":"InputSpoiler",
         "type":"keyword",
-        "info":"InputSpoiler[expr_] hides content"
+        "info":'InputSpoiler[expr_EventObject, "Label"->"..."] hides the content'
     },
     
     
