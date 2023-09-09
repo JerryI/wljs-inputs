@@ -238,13 +238,13 @@ core.FileUploadView = async (args, env) => {
         reader.addEventListener('load', (event) => {
           let compressedData = base64ArrayBuffer(event.target.result);
           labelEl.innerText = `Sending via POST...`;
-          server.post.emitt(uid, '<|"data"->"'+compressedData+'", "name"->"'+file.name+'"|>').then(()=>{
+          server.emitt(uid, '<|"data"->"'+compressedData+'", "name"->"'+file.name+'"|>');/*.then(()=>{*/
             labelEl.innerText = `Uploaded`;
             setTimeout(()=>{
                 env.element.children[0].children[0].classList.remove('enter');
                 labelEl.innerText = label;
             },1000);
-          },
+          /*},
           
           () => {
             labelEl.innerText = `Failed`;
@@ -255,7 +255,7 @@ core.FileUploadView = async (args, env) => {
                 env.element.children[0].children[0].classList.remove('enter');
                 labelEl.innerText = label;
             },1000);            
-          });
+          });*/
           
           // Do something with result
         });
