@@ -6,6 +6,7 @@
     "build": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs",
     "watch": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs -w"
   },
+  "defaultPackage": true,
   "wljs-meta": {
     "jsmodule": "dist/kernel.js",
     "wlkernel": "src/kernel.wl",
