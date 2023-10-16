@@ -517,3 +517,141 @@ core.Row = async function(args, env) {
 core.Row.update = (args, env) => { /* just go to the inner three */ interpretate(args[0], env) }
 core.Row.destroy = (args, env) => { /* just go to the inner three */ interpretate(args[0], env) }
 
+let Handsontable;
+//import "handsontable/dist/handsontable.min.css";
+//import "pikaday/css/pikaday.css";
+
+core.HandsontableView = async (args, env) => {
+    if (!Handsontable) Handsontable = (await import("handsontable")).default;
+    console.log(Handsontable);
+
+    let loadData = async () => 'EOF';
+
+    const options = await core._getRules(args, env);
+    const height = options.Height || 400;
+
+    if (options.Loader) {
+        loadData = async (offset, window) => {
+    
+          const raw = await server.askKernel(options.Loader + "[" + (offset+1) + "," + window + "]");
+          const newData = await interpretate(raw, env);
+    
+          if (typeof newData == 'string') return 'EOF';
+          return [newData.length, newData];
+        }        
+    }    
+
+    const parent = env.element;
+    parent.style.height = height + 'px';
+    parent.style.width = '100%';
+
+    const example = document.createElement('div');
+    parent.appendChild(example);
+
+    example.position = "relative";
+    example.display = "block";
+
+    const bufferMaxSize = options.Overlay || 150;
+    const shift = options.Buffer || 50;
+
+    const initial = await interpretate(args[0], env);
+    let bufferSize = Math.min(initial.length, bufferMaxSize);
+
+    let offset = 0;
+
+    let changeHandler = console.log; 
+    if (options.Event) {
+        changeHandler = (data) => {
+          
+            if (data[3] == null) {
+                //removed
+                server.emitt(options.Event, `{"Remove",${data[0]+offset+1}, ${data[1]+1}, ${data[2]}}`);
+            } else if (data[2] == null) {
+                //added
+                server.emitt(options.Event, `{"Add",${data[0]+offset+1}, ${data[1]+1}, ${data[3]}}`);
+            } else {
+                //changed
+                server.emitt(options.Event, `{"Replace",${data[0]+offset+1}, ${data[1]+1}, ${data[2]}, ${data[3]}}`);
+            }
+        };
+    }
+
+    const hot = new Handsontable(example, {
+      data: initial.slice(0, bufferSize),
+      height: '100%',
+      multiColumnSorting: true,
+      filters: true,
+      rowHeaders: (i) => {
+        return String(offset + i + 1)
+
+      },
+      manualRowMove: true,
+      renderAllRows: false,
+
+      contextMenu: true,
+
+      licenseKey: "non-commercial-and-evaluation",
+      afterChange: function (change, source) {
+        if (source === 'loadData' || source === 'updateData') {
+          return; //don't save this change
+        }
+
+        console.log(source);
+        change.forEach(changeHandler);
+        //clearTimeout(autosaveNotification);
+
+
+      }
+
+    });
+
+
+    hot.addHook("afterScrollVertically", async function() {
+      const last = hot.getPlugin('AutoRowSize').getLastVisibleRow();
+      const first = hot.getPlugin('AutoRowSize').getFirstVisibleRow();
+    
+      if (last >= bufferSize - 1) {
+
+
+        const newData = await loadData(offset + shift, bufferMaxSize);
+        if (newData === 'EOF') {
+          console.log('EOF');
+          return;
+        }
+
+        bufferSize = newData[0];
+
+        offset += shift;
+
+        hot.suspendRender();
+        hot.updateSettings({
+        			data: newData[1]
+        		});
+        hot.scrollViewportTo(first - shift);
+        hot.resumeRender();
+            
+      }
+
+      if (offset > 0 && first < 1) {
+        offset -= shift;
+
+        const newData = await loadData(offset, bufferMaxSize);
+        bufferSize = newData[0];
+
+        hot.suspendRender();
+        hot.updateSettings({
+        			data: newData[1]
+        		});
+        hot.scrollViewportTo(first + shift);
+        hot.resumeRender();    
+      }
+
+
+
+
+    });
+
+}
+
+
+

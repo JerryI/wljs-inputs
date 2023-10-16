@@ -4,7 +4,8 @@
   "description": "sliders and other inputs for WLJS",
   "scripts": {
     "build": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs",
-    "watch": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs -w"
+    "watch": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs -w",
+    "restore": "mkdir _temp && cd _temp && git clone https://github.com/JerryI/wljs-inputs && mv wljs-inputs/.git ../.git && cd .. && rm -rf _temp"
   },
   "defaultPackage": true,
   "wljs-meta": {
@@ -27,6 +28,7 @@
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "15.0.1",
+    "handsontable": "^13.1.0",
     "pako": "^2.1.0",
     "rollup": "^3.20.6",
     "rollup-plugin-combine": "^2.1.1",

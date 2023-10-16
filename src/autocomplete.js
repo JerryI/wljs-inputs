@@ -38,6 +38,12 @@ window.EditorAutocomplete.extend([
         "type":"keyword",
         "info":'InputSpoiler[expr_EventObject, "Label"->"..."] hides the content'
     },
+
+    {
+        "label": "InputTable",
+        "type": "keyword",
+        "info": 'InputTable[expr_List] shown an excel-like table'
+    },
     
     
     {

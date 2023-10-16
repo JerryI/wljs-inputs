@@ -56,9 +56,26 @@ InputGroup[in_Association] := Module[{view}, With[{evid = CreateUUID[]},
 	EventObject[<|"id"->evid, "initial"->InputGroup[evid], "view"->view|>]
 ]];
 
-(* indev *)
-InputWolframLanguage[OptionsPattern[]] := Null;
+InputTable[list_, opts___] := LeakyModule[{loader}, With[{evid = CreateUUID[]},
+	If[Depth[list] < 3, Return[Module, Style["Must be a list of lists!", Background->Red]]];
+	loader[offset_, window_] := If[offset > Length[list],
+		"EOF",
+		list[[offset ;; Min[offset + window, Length[list]]]]
+	];
+	EventObject[<|"id"->evid, "view"->HandsontableView[Take[list, Min[150, Length[list]]], "Event"->evid, "Loader"->ToString[loader], opts]|>]
+]]
 
+SetAttributes[InputTable, HoldFirst]
+
+InputTable`EventHelper[list_] := Module[{handler},
+	handler[{"Replace", row_, col_, old_, new_}] := list[[row, col]] = ToExpression[new];
+	handler[{"Add", row_, col_, new_}] := list[[row, col]] = ToExpression[new];
+	handler[{"Remove", row_, col_, new_}] := list[[row, col]] = Null;
+
+	handler
+]
+
+SetAttributes[InputTable`EventHelper, HoldFirst]
 
 (* old alias *)
 HTMLSlider = InputsRange
