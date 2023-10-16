@@ -109,6 +109,27 @@ Try firstly with some small text files. The structure of the data for each file 
 <|"data"->"base64 encoded byte array", "name"->"filename"|>
 ```
 
+### Table input
+Works as sort of small Excel, a great solution for a large tables, since it does support lazy loading from the server
+```mathematica
+list = Table[i j, {i,5}, {j,5}];
+EventHandler[InputTable[list], Print]
+```
+when you change something, it send the corresponding transaction. However, if you don't want to mess with them, there is a helper function, that update the list using those transations. Just put it into an `EventHandler`
+```mathematica
+list = Table[i j, {i,5}, {j,5}];
+handler = InputTable`EventHelper[list];
+textstr = "";
+EventHandler[InputTable[list, "Height"->150], Function[data, 
+  handler[data];
+  textstr = list //MatrixForm // ToCM6Boxes;
+]]
+
+EditorView[textstr // Offload] // CreateFrontEndObject
+```
+
+![](imgs/ezgif.com-optimize-7.gif)
+
 ## Grouping
 One can group different inputs into a single event-object, that maintains the original structure
 
