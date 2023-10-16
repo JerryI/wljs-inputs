@@ -7213,6 +7213,13 @@ core.HandsontableView = async (args, env) => {
     const initial = await interpretate(args[0], env);
     let bufferSize = Math.min(initial.length, bufferMaxSize);
 
+    const cols = [];
+    if (options.Heading) ; else {
+        initial[0].forEach(() => {
+            cols.push({type: 'numeric'});
+        });
+    }
+
     let offset = 0;
 
     let changeHandler = console.log; 
@@ -7237,6 +7244,7 @@ core.HandsontableView = async (args, env) => {
       height: '100%',
       multiColumnSorting: true,
       filters: true,
+      columns: cols,
       rowHeaders: (i) => {
         return String(offset + i + 1)
 

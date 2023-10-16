@@ -45,6 +45,12 @@ window.EditorAutocomplete.extend([
         "info": 'InputTable[expr_List] shown an excel-like table'
     },
     
+    {
+        "label": "InputTable`EventHelper",
+        "type": "keyword",
+        "info": 'InputTable`EventHelper[expr_List] helps to update the list by the reference'
+    },
+    
     
     {
         "label":"RangeView",
