@@ -62,15 +62,44 @@ InputTable[list_, opts___] := LeakyModule[{loader}, With[{evid = CreateUUID[]},
 		"EOF",
 		list[[offset ;; Min[offset + window, Length[list]]]]
 	];
+	
 	EventObject[<|"id"->evid, "view"->HandsontableView[Take[list, Min[150, Length[list]]], "Event"->evid, "Loader"->ToString[loader], opts]|>]
 ]]
 
 SetAttributes[InputTable, HoldFirst]
 
-InputTable`EventHelper[list_] := Module[{handler},
+InputTable`EventHelper[list_] := Module[{handler, buffer, placeholder = Table[Null, {i, Length[list//First]}]},
 	handler[{"Replace", row_, col_, old_, new_}] := list[[row, col]] = ToExpression[new];
 	handler[{"Add", row_, col_, new_}] := list[[row, col]] = ToExpression[new];
 	handler[{"Remove", row_, col_, new_}] := list[[row, col]] = Null;
+
+	handler[{"RowsAdd", start_, n_}] := (buffer = list; Do[buffer = Insert[buffer, placeholder, start], {k,n}]; list = buffer);
+	handler[{"RowsRemove", start_, n_}] := (buffer = list; Do[buffer = Delete[buffer, start], {k,n}]; list = buffer);
+
+	handler[{"ColsAdd", start_, n_}] := With[{dummy = Table[Null, {i, Length[list]}]},
+		buffer = list;
+		
+			buffer = Transpose[buffer];
+			Do[
+				buffer = Insert[buffer, dummy, start];
+			, {k,n}];
+			buffer = Transpose[buffer];
+		
+		list = buffer;
+	];
+
+	handler[{"ColsRemove", start_, n_}] := With[{dummy = Table[Null, {i, Length[list]}]},
+		buffer = list;
+		
+			buffer = Transpose[buffer];
+			Do[
+				buffer = Delete[buffer, start];
+			, {k,n}];
+			buffer = Transpose[buffer];
+		
+		list = buffer;
+	];
+
 
 	handler
 ]

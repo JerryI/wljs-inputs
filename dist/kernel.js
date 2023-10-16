@@ -7224,18 +7224,35 @@ core.HandsontableView = async (args, env) => {
 
     let changeHandler = console.log; 
     if (options.Event) {
-        changeHandler = (data) => {
-          
-            if (data[3] == null) {
-                //removed
-                server.emitt(options.Event, `{"Remove",${data[0]+offset+1}, ${data[1]+1}, ${data[2]}}`);
-            } else if (data[2] == null) {
-                //added
-                server.emitt(options.Event, `{"Add",${data[0]+offset+1}, ${data[1]+1}, ${data[3]}}`);
-            } else {
-                //changed
-                server.emitt(options.Event, `{"Replace",${data[0]+offset+1}, ${data[1]+1}, ${data[2]}, ${data[3]}}`);
+        changeHandler = (type, data) => {
+            if (type === 'edit') {
+                if (data[3] == null) {
+                    //removed
+                    server.emitt(options.Event, `{"Remove",${data[0]+offset+1}, ${data[1]+1}, ${data[2]}}`);
+                } else if (data[2] == null) {
+                    //added
+                    server.emitt(options.Event, `{"Add",${data[0]+offset+1}, ${data[1]+1}, ${data[3]}}`);
+                } else {
+                    //changed
+                    server.emitt(options.Event, `{"Replace",${data[0]+offset+1}, ${data[1]+1}, ${data[2]}, ${data[3]}}`);
+                }
             }
+
+            if (type === 'afterCreateRow') {
+                server.emitt(options.Event, `{"RowsAdd",${data[0]+offset+1}, ${data[1]}}`);
+            }
+
+            if (type === 'afterRemoveRow') {
+                server.emitt(options.Event, `{"RowsRemove",${data[0]+offset+1}, ${data[1]}}`);
+            }       
+            
+            if (type === 'afterCreateCol') {
+                server.emitt(options.Event, `{"ColsAdd",${data[0]+1}, ${data[1]}}`);
+            }
+
+            if (type === 'afterRemoveCol') {
+                server.emitt(options.Event, `{"ColsRemove",${data[0]+1}, ${data[1]}}`);
+            }            
         };
     }
 
@@ -7261,7 +7278,7 @@ core.HandsontableView = async (args, env) => {
         }
 
         console.log(source);
-        change.forEach(changeHandler);
+        change.forEach((data) => changeHandler('edit', data));
         //clearTimeout(autosaveNotification);
 
 
@@ -7314,5 +7331,25 @@ core.HandsontableView = async (args, env) => {
 
 
     });
+
+    hot.addHook('afterCreateRow', (row, amount) => {
+        changeHandler('afterCreateRow', [row, amount]);
+        console.log(`${amount} row(s) were created, starting at index ${row}`);
+    });
+
+    hot.addHook('afterRemoveRow', (row, amount) => {
+        changeHandler('afterRemoveRow', [row, amount]);
+        console.log(`${amount} row(s) were removed, starting at index ${row}`);
+    });    
+
+    hot.addHook('afterCreateCol', (row, amount) => {
+        changeHandler('afterCreateCol', [row, amount]);
+        console.log(`${amount} Col(s) were created, starting at index ${row}`);
+    });
+
+    hot.addHook('afterRemoveCol', (row, amount) => {
+        changeHandler('afterRemoveCol', [row, amount]);
+        console.log(`${amount} Col(s) were removed, starting at index ${row}`);
+    });    
 
 };
