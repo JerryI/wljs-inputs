@@ -56,6 +56,12 @@ window.EditorAutocomplete.extend([
         "label":"RangeView",
         "type":"keyword",
         "info":"Frontend only: RangeView[{min, max, step, initial}] - slider representation, where initial can be a variable or a value"
+    },
+
+    {
+        'label':'InputSelect',
+        'type':'keyword',
+        'info': 'InputSelect[list_List, "Label"->"text"] _EventObject - a list of items to be selected'
     }
 
 

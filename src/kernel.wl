@@ -3,6 +3,9 @@ InputRange[min_, max_, step_:1, opts___] := Module[{view, script, id = CreateUUI
     EventObject[<|"id"->id, "initial"->(If[NumberQ[First[List[opts]]], First[List[opts]], Round[(min+max)/2//N, step]]), "view"->RangeView[{min, max, step, If[NumberQ[First[List[opts]]], First[List[opts]], Round[(min+max)/2//N, step]]}, "Event"->id, opts]|>]
 ];
 
+InputSelect[list_List, opts___] := Module[{id = CreateUUID[], processed = Function[x, {x,x}] /@ list},
+	EventObject[<|"id"->id, "initial"->list[[1]], "view"->SelectView[processed, "Event"->id, opts]|>]
+]
 
 InputButton[label_String:"Click"] := Module[{view, script, id = CreateUUID[]},
     EventObject[<|"id"->id, "initial"->False, "view"->ButtonView["Label"->label, "Event"->id]|>]

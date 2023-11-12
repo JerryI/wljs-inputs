@@ -6841,6 +6841,35 @@ core.ButtonView = async (args, env) => {
 core.ButtonView.update = () => {};
 core.ButtonView.destroy = () => {};
 
+
+core.SelectView = async (args, env) => {
+    const options = await core._getRules(args, env);
+
+    const uid = options.Event;
+
+    let label = '';
+    if (options.Label) label = `<label for="${uid}">${options.Label}</label>`;
+
+    let list = await interpretate(args[0], env);
+    list = list.map((el) => {
+      return `<option value="${el[0]}">${el[1]}</option>`
+    });
+
+    console.log(list);
+    
+
+    env.element.innerHTML = `<form class="oi-select">`+label+`<select name="${uid}" id="${uid}">`+(list.join(''))+`</select></form>`;
+
+    document.getElementById(uid).onchange = function(evt){
+      evt.preventDefault();
+      evt.target.value;
+      server.emitt(uid, '"'+evt.target.value+'"');
+    };
+};
+
+core.SelectView.update = () => {};
+core.SelectView.destroy = () => {};
+
 //just as input
 core.FileUploadView = async (args, env) => {
     const options = await core._getRules(args, env);
@@ -7178,7 +7207,7 @@ let Handsontable;
 //import "pikaday/css/pikaday.css";
 
 core.HandsontableView = async (args, env) => {
-    if (!Handsontable) Handsontable = (await import('./index-f00bb651.js')).default;
+    if (!Handsontable) Handsontable = (await import('./index-ed55a939.js')).default;
     console.log(Handsontable);
 
     let loadData = async () => 'EOF';
