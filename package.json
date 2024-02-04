@@ -9,13 +9,12 @@
   },
   "defaultPackage": true,
   "wljs-meta": {
-    "jsmodule": "dist/kernel.js",
-    "wlkernel": "src/kernel.wl",
     "styles": [
-        "src/styles.css",
-        "src/handsontable.min.css"
+        "src/handsontable.min.css",
+        "src/styles.css"
     ],
-    "autocomplete": "src/autocomplete.js"
+    "kernel": "src/Kernel.wl",
+    "expose": "templates"
   },
   "repository": {
     "type": "git",

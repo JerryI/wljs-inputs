@@ -1,0 +1,35 @@
+Component[OptionsPattern[]] := With[{Event = OptionValue["Event"], Topic = ToString[OptionValue["Topic"], InputForm], Uid = CreateUUID[], Label = OptionValue["Label"], MinX = OptionValue["Min"], MaxX = OptionValue["Max"], Step = OptionValue["Step"], Initial = OptionValue["Initial"]},
+    {
+        <div class="relative shrink-0 gap-y-3 pb-2 flex flex-col sm-controls">
+            <div class="flex gap-x-5 sm-controls">
+                <label for="default-range" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"><Label/></label>
+                <input id="n-{Uid}" type="number" class="ml-auto h-2 grow max-w-60 block p-2.5 text-xs text-gray-900 bg-gray-50 rounded-md border-2-gray-50 border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-e-gray-700  dark:border-gray-600 dark:text-white dark:focus:border-blue-500" min="{MinX}" max="{MaxX}" step="{Step}" value="{Initial}"></input>
+            </div>
+            <input id="r-{Uid}" type="range" min="{MinX}" max="{MaxX}" step="{Step}" value="{Initial}" class="sm-controls w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"></input>
+        </div>
+    ,
+        <script type="module">
+            const num = document.getElementById('n-<Uid/>');
+            const ran = document.getElementById('r-<Uid/>');
+            
+            function isNumber(value) { return typeof value === 'number'}
+
+            num.addEventListener('input', (event)=> {
+                if (isNaN(num.value)) return;
+                ran.value = num.value;
+                server.kernel._emitt('<Event/>', num.value, '<Topic/>');      
+            });
+
+            ran.addEventListener('input', (event)=> {
+                if (isNaN(ran.value)) return;
+                num.value = ran.value;
+                server.kernel._emitt('<Event/>', ran.value, '<Topic/>');      
+            });
+        </script>
+    }
+];
+
+Options[Component] = {"Event"->"blackhole", "Label"->"", "Min"->0, "Max"->1, "Step"->1, "Initial"->0, "Topic"->"Default"};
+
+Component
+
