@@ -14,7 +14,7 @@
         "src/styles.css"
     ],
     "kernel": "src/Kernel.wl",
-    "expose": "templates"
+    "category": "User's GUI"
   },
   "repository": {
     "type": "git",
