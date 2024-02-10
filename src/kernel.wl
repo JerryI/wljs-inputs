@@ -2,12 +2,17 @@ BeginPackage["Notebook`Kernel`Inputs`", {
 	"JerryI`Misc`Events`",
 	"JerryI`WLX`",
     "JerryI`WLX`Importer`",
-	"JerryI`Misc`WLJS`Transport`"
+	"JerryI`Misc`WLJS`Transport`",
+	"Notebook`EditorUtils`",
+	"Notebook`Editor`FrontendObject`"
 }]
 
 InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"->\"\", \"Topic\"->\"Default\"] _EventObject."
 InputCheckbox::usage = "InputCheckbox[state_Bool, \"Label\"->, \"Description\"->, , \"Topic\"->\"Default\"] _EventObject. A standard checkbox"
 InputButton::usage = "InputBotton[label_String, \"Topic\"->\"Default\"] _EventObject. A standard button"
+
+InputText::usage = "InputText[initial_String, opts] _EventObject"
+InputSelect::usage = ""
 
 
 Begin["`Private`"]
@@ -36,6 +41,11 @@ InputCheckbox[initial_:False, opts: OptionsPattern[] ] := With[{id = CreateUUID[
 ]
 Options[InputCheckbox] = {"Label"->"", "Description"->""}
 
+TextX = ImportComponent[FileNameJoin[{$troot, "Text.wlx"}] ];
+InputText[initial_:"", opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
+	EventObject[<|"Id"->id, "Initial"->initial, "View"->WLXEmbed[TextX[initial, "Event"->id, opts] ]|>]
+]
+Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->""}
 
 End[]
 EndPackage[]

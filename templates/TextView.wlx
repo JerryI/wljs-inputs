@@ -1,0 +1,21 @@
+Component[val_, OptionsPattern[]] := With[{Uid = OptionValue["Uid"], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], Topic = OptionValue["Topic"]},
+    Sequence[
+        <div class="sm-controls">
+            <label class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
+            <div class="mt-1">
+              <input id="{Uid}" type="text" class="relative cursor-default rounded-md 0 h-7 pl-3 pr-2 text-left text-gray-500  ring-1 ring-inset ring-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-xs sm:leading-6 bg-d9" placeholder="{Placeholder}" aria-describedby="email-description"/>
+            </div>
+            <p class="mt-1 text-sm text-gray-500"><Descp/></p>
+        </div>
+    ,
+        "SideEffect" -> 
+    ]
+]
+
+Options[Component] = {"Placeholder"->"Nothing to show", "Label"->"", "Uid":>CreateUUID[], "Description"->"", "Event"->"blackhole", "Topic"->"Default"}
+
+Script = With[{},
+
+]
+
+Component
