@@ -13,8 +13,10 @@
         "src/handsontable.min.css",
         "src/styles.css"
     ],
+    "js": "dist/kernel.js",
     "kernel": "src/Kernel.wl",
-    "category": "User's GUI"
+    "category": "User's GUI",
+    "priority": 550
   },
   "repository": {
     "type": "git",

@@ -1,57 +1,58 @@
-Component[value_String:"", OptionsPattern[]] := With[{Uid = CreateUUID[], Event = OptionValue["Event"], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], Topic = OptionValue["Topic"]},
+makeScript[_, _, _] := ""
+makeScript[Uid_String, Event_String, Topic_String] := (
+    <script type="module">
+        const el = document.getElementById('<Uid/>');
+        console.log('WORKING!!!!');
+        el.addEventListener('input', () => {
+            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<Topic/>')
+        })
+    </script>
+)
+
+makeScript[Uid_String, Event_String, {TopicChange_String, _}] := (
+    <script type="module">
+        const el = document.getElementById('<Uid/>');
+        el.addEventListener('input', () => {
+            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicChange/>')
+        })
+    </script>    
+)
+
+makeScript[Uid_String, Event_String, {_, TopicBlur_String}] := (
+    <script type="module">
+        const el = document.getElementById('<Uid/>');
+        el.addEventListener('blur', () => {
+            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicBlur/>')
+        })
+    </script>    
+)
+
+makeScript[Uid_String, Event_String, {TopicChange_String, TopicBlur_String}] := (
+    <script type="module">
+        const el = document.getElementById('<Uid/>');
+        el.addEventListener('blur', () => {
+            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicBlur/>')
+        })        
+        el.addEventListener('blur', () => {
+            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicBlur/>')
+        })
+    </script>    
+)
+
+Component[value_String:"", OptionsPattern[]] := With[{UId = OptionValue["UId"], event = OptionValue["Event"], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], topic = OptionValue["Topic"]},
   {
     <div class="sm-controls">
         <label class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
         <div class="mt-1">
-          <input id="{Uid}" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-7 pl-3 pr-2 text-left text-gray-500  ring-1 ring-inset ring-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-xs sm:leading-6 bg-d9" placeholder="{Placeholder}" aria-describedby="email-description"/>
+          <input id="{UId}" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-7 pl-3 pr-2 text-left text-gray-500  ring-1 ring-inset ring-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 sm:text-xs sm:leading-6 bg-gray-100" placeholder="{Placeholder}" aria-describedby="email-description"/>
         </div>
         <p class="mt-1 text-sm text-gray-500"><Descp/></p>
     </div>
   ,
-    If[StringQ[Topic],
-        <script type="module">
-            const el = document.getElementById('<Uid/>');
-            el.addEventListener('input', () => {
-                server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<Topic/>')
-            })
-        </script>
-    ,
-        With[{
-            TopicChange = Topic[[1]],
-            TopicBlur = Topic[[2]]
-        },
-            With[{
-                InputTScript = If[StringQ[TopicChange],
-                    <Placebo>
-                        el.addEventListener('input', () => {
-                            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicChange/>')
-                        })
-                    </Placebo>
-                ,
-                    ""
-                ],
-
-                BlurTScript = If[StringQ[TopicBlur],
-                    <Placebo>
-                        el.addEventListener('blur', () => {
-                            server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicBlur/>')
-                        })
-                    </Placebo>
-                ,
-                    ""
-                ]                
-            },
-                <script type="module">
-                    const el = document.getElementById('<Uid/>');
-                    <InputTScript/>;;
-                    <BlurTScript/>;;
-                </script>        
-            ]
-        ]
-    ]
+    makeScript[UId, event, topic]
   }
 ]
 
-Options[Component] = {"Placeholder"->"Type here...", "Label"->"", "Description"->"", "Event"->"blackhole", "Topic"->"Default"}
+Options[Component] = {"Placeholder"->"Type here...", "Label"->"", "Description"->"", "UId":>CreateUUID[], "Event"->Null, "Topic"->"Default"}
 
 Component

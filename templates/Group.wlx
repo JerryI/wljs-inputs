@@ -1,0 +1,16 @@
+Component[OptionsPattern[]] := With[{UId = OptionValue["UId"], Label = OptionValue["Label"], Description = OptionValue["Description"]},
+    <div class="divide-y divide-gray-200 overflow-hidden rounded-md bg-white shadow">
+      <div class="px-2 py-2">
+        <Label/>
+      </div>
+      <div class="px-2 py-2" id="{UId}">
+      </div>
+      <div class="px-2 py-2">
+        <Description/>
+      </div>
+    </div>
+]
+
+Options[Component] = {"UId":>CreateUUID[], "Label"->"", "Description"->""}
+
+Component

@@ -66,7 +66,7 @@ InputTable[list_, opts___] := LeakyModule[{loader}, With[{evid = CreateUUID[]},
 		list[[offset ;; Min[offset + window, Length[list]]]]
 	];
 	
-	EventObject[<|"id"->evid, "view"->HandsontableView[Take[list, Min[150, Length[list]]], "Event"->evid, "Loader"->ToString[loader], opts]|>]
+	EventObject[<|"id"->evid, "view"->HandsontableView[Take[list, Min[150, Length[list] ] ], "Event"->evid, "Loader"->ToString[loader], opts]|>]
 ]]
 
 SetAttributes[InputTable, HoldFirst]

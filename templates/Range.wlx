@@ -1,3 +1,97 @@
+makeScript[_, _, _] := ""
+makeScript[Uid_, Event_String, Topic_String] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'}
+
+        num.addEventListener('input', (event)=> {
+            if (isNaN(num.value)) return;
+            ran.value = num.value;
+            server.kernel.emitt('<Event/>', num.value, '<Topic/>');      
+        });
+
+        ran.addEventListener('input', (event)=> {
+            if (isNaN(ran.value)) return;
+            num.value = ran.value;
+            server.kernel.emitt('<Event/>', ran.value, '<Topic/>');      
+        });
+    </script>
+)
+
+makeScript[Uid_, Event_String, {InputTopic_String, _}] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'};
+        num.addEventListener('input', (event)=> {
+            if (isNaN(num.value)) return;
+            ran.value = num.value;
+            server.kernel.emitt('<Event/>', num.value, '<InputTopic/>');      
+        });
+
+        ran.addEventListener('input', (event)=> {
+            if (isNaN(ran.value)) return;
+            num.value = ran.value;
+            server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');      
+        });
+    </script>
+)
+
+makeScript[Uid_, Event_String, {_, ChangeTopic_String}] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'};
+                    num.addEventListener('blur', (event)=> {
+                        if (isNaN(num.value)) return;
+                        ran.value = num.value;
+                        server.kernel.emitt('<Event/>', num.value, '<ChangeTopic/>');      
+                    });
+                 ran.addEventListener('change', (event)=> {
+                        if (isNaN(ran.value)) return;
+                        num.value = ran.value;
+                        server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');      
+                    });
+    </script>
+)
+
+
+makeScript[Uid_, Event_String, {InputTopic_String, ChangeTopic_String}] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'};
+        num.addEventListener('input', (event)=> {
+            if (isNaN(num.value)) return;
+            ran.value = num.value;
+            server.kernel.emitt('<Event/>', num.value, '<InputTopic/>');      
+        });
+
+        ran.addEventListener('input', (event)=> {
+            if (isNaN(ran.value)) return;
+            num.value = ran.value;
+            server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');      
+        });        
+
+        num.addEventListener('blur', (event)=> {
+                        if (isNaN(num.value)) return;
+                        ran.value = num.value;
+                        server.kernel.emitt('<Event/>', num.value, '<ChangeTopic/>');      
+        });
+
+        ran.addEventListener('change', (event)=> {
+                        if (isNaN(ran.value)) return;
+                        num.value = ran.value;
+                        server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');      
+        });
+    </script>
+)
+
 Component[OptionsPattern[]] := With[{
     Event = OptionValue["Event"], 
     Topic = OptionValue["Topic"], 
@@ -17,75 +111,11 @@ Component[OptionsPattern[]] := With[{
             <input id="r-{Uid}" type="range" min="{MinX}" max="{MaxX}" step="{Step}" value="{Initial}" class="sm-controls w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer "></input>
         </div>
     ,
-    If[StringQ[Topic],
-        <script type="module">
-            const num = document.getElementById('n-<Uid/>');
-            const ran = document.getElementById('r-<Uid/>');
-            
-            function isNumber(value) { return typeof value === 'number'}
-
-            num.addEventListener('input', (event)=> {
-                if (isNaN(num.value)) return;
-                ran.value = num.value;
-                server.kernel.emitt('<Event/>', num.value, '<Topic/>');      
-            });
-
-            ran.addEventListener('input', (event)=> {
-                if (isNaN(ran.value)) return;
-                num.value = ran.value;
-                server.kernel.emitt('<Event/>', ran.value, '<Topic/>');      
-            });
-        </script>
-    ,
-            With[{InputTopic = Topic[[1]], ChangeTopic = Topic[[2]]},
-                With[{
-                    InputRangeScript = If[StringQ[InputTopic],
-                        <Placebo>
-                            num.addEventListener('input', (event)=> {
-                                if (isNaN(num.value)) return;
-                                ran.value = num.value;
-                                server.kernel.emitt('<Event/>', num.value, '<InputTopic/>');      
-                            });
-
-                            ran.addEventListener('input', (event)=> {
-                                if (isNaN(ran.value)) return;
-                                num.value = ran.value;
-                                server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');      
-                            });        
-                        </Placebo>
-                    , ""],
-
-                    ChangeRangeScript = If[StringQ[ChangeTopic],
-                        <Placebo>
-                            num.addEventListener('blur', (event)=> {
-                                if (isNaN(num.value)) return;
-                                ran.value = num.value;
-                                server.kernel.emitt('<Event/>', num.value, '<ChangeTopic/>');      
-                            });
-
-                            ran.addEventListener('change', (event)=> {
-                                if (isNaN(ran.value)) return;
-                                num.value = ran.value;
-                                server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');      
-                            });        
-                        </Placebo>                        
-                    , ""]
-                },
-                    <script type="module">
-                        const num = document.getElementById('n-<Uid/>');
-                        const ran = document.getElementById('r-<Uid/>');
-
-                        function isNumber(value) { return typeof value === 'number'};
-                        <InputRangeScript/>;
-                        <ChangeRangeScript/>;
-                    </script>
-                ]
-            ]
-    ]
+        makeScript[Uid, Event, Topic]
     }
 ];
 
-Options[Component] = {"Event"->"blackhole", "Label"->"", "Min"->0, "Max"->1, "Step"->1, "Initial"->0, "Topic"->"Default"};
+Options[Component] = {"Event"->Null, "Label"->"", "Min"->0, "Max"->1, "Step"->1, "Initial"->0, "Topic"->"Default"};
 
 Component
 
