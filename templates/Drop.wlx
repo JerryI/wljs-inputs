@@ -71,6 +71,7 @@ Component[OptionsPattern[]] := With[{Event = OptionValue["Event"], UId = CreateU
             const reader = new FileReader();
             reader.addEventListener('load', (event) => {
               let compressedData = base64ArrayBuffer(event.target.result);
+              console.log(compressedData);
               cbk(file.name, compressedData);  
             });
           
@@ -129,7 +130,7 @@ Component[OptionsPattern[]] := With[{Event = OptionValue["Event"], UId = CreateU
                   const file = item.getAsFile();
                   filesArray.push(file);
                   //readFile(file);
-                  //console.log(`… file[${i}].name = ${file.name}`);
+       
                 }
               }); 
             } else {
@@ -138,7 +139,7 @@ Component[OptionsPattern[]] := With[{Event = OptionValue["Event"], UId = CreateU
                 //readFile(file);
                 console.log('second WAY');
                 filesArray.push(file);
-                //console.log(`… file[${i}].name = ${file.name}`);
+        
               });
             }
 

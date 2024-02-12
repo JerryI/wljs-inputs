@@ -5,8 +5,7 @@ BeginPackage["Notebook`Kernel`Inputs`", {
 	"JerryI`Misc`WLJS`Transport`",
 	"JerryI`Misc`Language`",
 	"Notebook`EditorUtils`",
-	"Notebook`Editor`FrontendObject`",
-	"Notebook`Editor`WLXTools`"
+	"Notebook`Editor`FrontendObject`"
 }]
 
 InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"->\"\", \"Topic\"->\"Default\"] _EventObject."
