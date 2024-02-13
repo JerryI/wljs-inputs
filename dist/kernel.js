@@ -6692,7 +6692,7 @@ core.InternalHandleTextView.update = async (args, env) => {
 
 core.InternalHandleTextView.destroy = async (args, env) => {
     console.log('InternalHandleTextView destroyed!');
-    await interpretate(args[0], env);
+ 
 };
 
 core.InternalHandleTextView.virtual = true;
@@ -6712,7 +6712,6 @@ core.InternalHandleHTMLView.update = async (args, env) => {
 
 core.InternalHandleHTMLView.destroy = async (args, env) => {
     console.log('InternalHandleHTMLView destroyed!');
-    await interpretate(args[0], env);
 };
 
 core.InternalHandleHTMLView.virtual = true;
@@ -6956,4 +6955,16 @@ core.HandsontableView = async (args, env) => {
         console.log(`${amount} Col(s) were removed, starting at index ${row}`);
     });    
 
+    env.local.hot = hot;
+};
+
+core.HandsontableView.virtual = true;
+
+core.HandsontableView.update = () => {
+    console.error('HandsontableView updates are still not supported :(');
+};
+
+core.HandsontableView.destroy = (args, env) => {
+    console.warn('HandsontableView was destoryed');
+    env.local.hot.destroy();
 };
