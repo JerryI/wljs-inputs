@@ -6774,7 +6774,7 @@ let Handsontable;
 //import "pikaday/css/pikaday.css";
 
 core.HandsontableView = async (args, env) => {
-    if (!Handsontable) Handsontable = (await import('./index-3adca5b1.js')).default;
+    if (!Handsontable) Handsontable = (await import('./index-57d4bef8.js')).default;
     console.log(Handsontable);
 
     let loadData = async () => 'EOF';
