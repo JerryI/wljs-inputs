@@ -303,7 +303,7 @@ core.HandsontableView.update = () => {
 
 core.HandsontableView.destroy = (args, env) => {
     console.warn('HandsontableView was destoryed');
-    env.local.hot.destroy();
+    if (env.local.hot) env.local.hot.destroy();
 }
 
 
