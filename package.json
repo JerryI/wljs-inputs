@@ -9,13 +9,15 @@
   },
   "defaultPackage": true,
   "wljs-meta": {
-    "jsmodule": "dist/kernel.js",
-    "wlkernel": "src/kernel.wl",
     "styles": [
-        "src/styles.css",
-        "src/handsontable.min.css"
+      "src/handsontable.min.css",
+      "src/styles.css"
     ],
-    "autocomplete": "src/autocomplete.js"
+    "minjs": "dist/kernel.min.js",
+    "js": "dist/kernel.js",
+    "kernel": "src/Kernel.wl",
+    "category": "User's GUI",
+    "priority": 550
   },
   "repository": {
     "type": "git",
@@ -31,6 +33,7 @@
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "15.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
     "handsontable": "^13.1.0",
     "pako": "^2.1.0",
     "rollup": "^3.20.6",

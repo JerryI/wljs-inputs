@@ -1,0 +1,121 @@
+makeScript[_, _, _] := ""
+makeScript[Uid_, Event_String, Topic_String] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'}
+
+        num.addEventListener('input', (event)=> {
+            if (isNaN(num.value)) return;
+            ran.value = num.value;
+            server.kernel.emitt('<Event/>', num.value, '<Topic/>');      
+        });
+
+        ran.addEventListener('input', (event)=> {
+            if (isNaN(ran.value)) return;
+            num.value = ran.value;
+            server.kernel.emitt('<Event/>', ran.value, '<Topic/>');      
+        });
+    </script>
+)
+
+makeScript[Uid_, Event_String, {InputTopic_String, _}] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'};
+        num.addEventListener('input', (event)=> {
+            if (isNaN(num.value)) return;
+            ran.value = num.value;
+            server.kernel.emitt('<Event/>', num.value, '<InputTopic/>');      
+        });
+
+        ran.addEventListener('input', (event)=> {
+            if (isNaN(ran.value)) return;
+            num.value = ran.value;
+            server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');      
+        });
+    </script>
+)
+
+makeScript[Uid_, Event_String, {_, ChangeTopic_String}] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'};
+                    num.addEventListener('blur', (event)=> {
+                        if (isNaN(num.value)) return;
+                        ran.value = num.value;
+                        server.kernel.emitt('<Event/>', num.value, '<ChangeTopic/>');      
+                    });
+                 ran.addEventListener('change', (event)=> {
+                        if (isNaN(ran.value)) return;
+                        num.value = ran.value;
+                        server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');      
+                    });
+    </script>
+)
+
+
+makeScript[Uid_, Event_String, {InputTopic_String, ChangeTopic_String}] := (
+    <script type="module">
+        const num = document.getElementById('n-<Uid/>');
+        const ran = document.getElementById('r-<Uid/>');
+
+        function isNumber(value) { return typeof value === 'number'};
+        num.addEventListener('input', (event)=> {
+            if (isNaN(num.value)) return;
+            ran.value = num.value;
+            server.kernel.emitt('<Event/>', num.value, '<InputTopic/>');      
+        });
+
+        ran.addEventListener('input', (event)=> {
+            if (isNaN(ran.value)) return;
+            num.value = ran.value;
+            server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');      
+        });        
+
+        num.addEventListener('blur', (event)=> {
+                        if (isNaN(num.value)) return;
+                        ran.value = num.value;
+                        server.kernel.emitt('<Event/>', num.value, '<ChangeTopic/>');      
+        });
+
+        ran.addEventListener('change', (event)=> {
+                        if (isNaN(ran.value)) return;
+                        num.value = ran.value;
+                        server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');      
+        });
+    </script>
+)
+
+Component[OptionsPattern[]] := With[{
+    Event = OptionValue["Event"], 
+    Topic = OptionValue["Topic"], 
+    Uid = CreateUUID[], 
+    Label = OptionValue["Label"], 
+    MinX = OptionValue["Min"], 
+    MaxX = OptionValue["Max"], 
+    Step = OptionValue["Step"], 
+    Initial = OptionValue["Initial"]
+},
+    {
+        <div class="relative shrink-0 gap-y-3 pb-2 flex flex-col sm-controls">
+            <div class="flex gap-x-5 sm-controls">
+                <label for="default-range" class="block mb-2 text-sm font-medium text-gray-900"><Label/></label>
+                <input id="n-{Uid}" type="number" class="ml-auto h-2 grow max-w-60 block p-2.5 text-xs text-gray-900 bg-gray-50 rounded-md border-2-gray-50 border border-gray-300 focus:ring-blue-500 focus:border-blue-500" min="{MinX}" max="{MaxX}" step="{Step}" value="{Initial}"></input>
+            </div>
+            <input id="r-{Uid}" type="range" min="{MinX}" max="{MaxX}" step="{Step}" value="{Initial}" class="sm-controls w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer "></input>
+        </div>
+    ,
+        makeScript[Uid, Event, Topic]
+    }
+];
+
+Options[Component] = {"Event"->Null, "Label"->"", "Min"->0, "Max"->1, "Step"->1, "Initial"->0, "Topic"->"Default"};
+
+Component
+
