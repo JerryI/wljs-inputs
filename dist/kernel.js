@@ -6665,6 +6665,21 @@ Inflate$1.prototype.onEnd = function (status) {
   this.msg = this.strm.msg;
 };
 
+core.InternalWLXDestructor = async (args, env) => {
+    const uid = await interpretate(args[0], env);
+    env.local.uid = uid;
+    console.log('Registered an instance');
+};
+
+core.InternalWLXDestructor.destroy = async (args, env) => {
+    console.log(env.local.uid);
+    console.log(core.InternalWLXDestructor[env.local.uid]);
+    (core.InternalWLXDestructor[env.local.uid])(env);
+    console.log('Removed an instance');
+};
+
+core.InternalWLXDestructor.virtual = true;
+
 core.InternalHandleGroup = async (args, env) => {
     const uid = await interpretate(args[0], env);
     const data = await interpretate(args[1], {...env, hold:true});

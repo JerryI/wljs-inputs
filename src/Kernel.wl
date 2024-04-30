@@ -19,11 +19,15 @@ InputSelect::usage = "InputSelect[{val1 -> expr1, val2 -> expr2}, defaultval] _E
 
 InputGroup::usage = "groups event objects"
 
+InputJoystick::usage = "InputJoystick[] _EventObject describes a 2D controller"
+
 TextView::usage = "TextView[symbol_, opts] shows a dynamic text-field. A generalized low-level version of InputText"
 HTMLView::usage = "HTMLView[string] will be rendered as DOM. A dynamic component"
 TableView::usage = "TableView[data_] A generalized low-level version of InputTable. Shows big chunks of data"
 
 HandsontableView;
+
+InternalWLXDestructor;
 
 Begin["`Private`"]
 
@@ -68,6 +72,26 @@ Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->""}
 
 TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
 	WLXEmbed[ TextX["Placeholder"->"Loading...", "UId" -> id, opts], "SideEffect"-> Global`InternalHandleTextView[value, id] ]
+]
+
+JoystickX = ImportComponent[FileNameJoin[{$troot, "Joystick.wlx"}] ];
+
+InputJoystick[] := With[{id = CreateUUID[]},
+	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{WLXEmbed[JoystickX["Event"->id] ], InternalWLXDestructor[id]}|>]
+]
+
+InputJoystick`IntegrationHelper[zero_List:{0,0}][function_] := InputJoystick`IntegrationHelper[zero, 0.01][function]
+InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_][function_] := InputJoystick`IntegrationHelper[zero, {delta, delta}][function]
+InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_List][function_] := Module[{
+	accumulated = zero,
+	handler
+},
+	handler[dxy_] := (
+		accumulated = accumulated + (dxy delta);
+		function[accumulated]
+	);
+
+	handler
 ]
 
 TextView /: MakeBoxes[t_TextView, StandardForm] := With[{o = CreateFrontEndObject[t]},

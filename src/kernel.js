@@ -1,5 +1,20 @@
 import { deflate } from 'pako';
 
+core.InternalWLXDestructor = async (args, env) => {
+    const uid = await interpretate(args[0], env);
+    env.local.uid = uid;
+    console.log('Registered an instance');
+}
+
+core.InternalWLXDestructor.destroy = async (args, env) => {
+    console.log(env.local.uid);
+    if (!core.InternalWLXDestructor[env.local.uid])
+    (core.InternalWLXDestructor[env.local.uid])(env);
+    console.log('Removed an instance');
+}
+
+core.InternalWLXDestructor.virtual = true
+
 core.InternalHandleGroup = async (args, env) => {
     const uid = await interpretate(args[0], env);
     const data = await interpretate(args[1], {...env, hold:true});
