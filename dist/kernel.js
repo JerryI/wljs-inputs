@@ -6673,7 +6673,7 @@ core.InternalWLXDestructor = async (args, env) => {
 
 core.InternalWLXDestructor.destroy = async (args, env) => {
     console.log(env.local.uid);
-    console.log(core.InternalWLXDestructor[env.local.uid]);
+    if (!core.InternalWLXDestructor[env.local.uid])
     (core.InternalWLXDestructor[env.local.uid])(env);
     console.log('Removed an instance');
 };
@@ -6982,4 +6982,61 @@ core.HandsontableView.update = () => {
 core.HandsontableView.destroy = (args, env) => {
     console.warn('HandsontableView was destoryed');
     if (env.local.hot) env.local.hot.destroy();
+};
+
+
+core.EventListener = async (args, env) => {
+    const rules = await interpretate(args[1], env);
+    const copy = {...env};
+
+    //let object = await interpretate(args[0], copy);
+    //if (Array.isArray(object)) object = object[0];
+
+    rules.forEach((rule)=>{
+      core.EventListener[rule.lhs](rule.rhs, null, copy);
+    });
+
+    return null;
+};
+
+const listeners = {};
+
+core.RemoveEventListener = async (args, env) => {
+    const uid = await interpretate(args[0], env);
+    console.log(uid);
+    console.log(listeners);
+    if (uid in listeners) {
+
+        listeners[uid].forEach((e) => {
+            console.log('Removed!');
+            e.element.removeEventListener("keydown", e.f);
+        });
+    }
+};
+
+core.EventListener.keydown = (uid, o, env) => {
+    const logKey = (e) => {
+        server.kernel.emitt(uid, '"'+e.code+'"', 'keydown');
+    };
+
+    if (!listeners[uid]) listeners[uid] = [];
+    listeners[uid].push({f: logKey, element: window});
+
+    document.addEventListener("keydown", logKey);
+};
+
+core.EventListener.capturekeydown = (uid, o, env) => {
+    const logKey = (e) => {
+        server.kernel.emitt(uid, '"'+e.code+'"', 'capturekeydown');
+        e.preventDefault();
+        e.stopPropagation();
+        //return false;
+    };
+
+    const el = document;
+
+    if (!listeners[uid]) listeners[uid] = [];
+    listeners[uid].push({f: logKey, element: el});
+
+    el.addEventListener("keydown", logKey);
 };

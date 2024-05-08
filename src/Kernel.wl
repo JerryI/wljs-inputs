@@ -1,11 +1,13 @@
 BeginPackage["Notebook`Kernel`Inputs`", {
 	"JerryI`Misc`Events`",
+	"JerryI`Misc`Events`Promise`",
 	"JerryI`WLX`",
     "JerryI`WLX`Importer`",
 	"JerryI`Misc`WLJS`Transport`",
 	"JerryI`Misc`Language`",
 	"Notebook`EditorUtils`",
-	"Notebook`Editor`FrontendObject`"
+	"Notebook`Editor`FrontendObject`",
+	"Notebook`Editor`Kernel`FrontSubmitService`"
 }]
 
 InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"->\"\", \"Topic\"->\"Default\"] _EventObject."
@@ -25,8 +27,12 @@ TextView::usage = "TextView[symbol_, opts] shows a dynamic text-field. A general
 HTMLView::usage = "HTMLView[string] will be rendered as DOM. A dynamic component"
 TableView::usage = "TableView[data_] A generalized low-level version of InputTable. Shows big chunks of data"
 
+EventListener::usage = "Internal wrapper for global input events"
+
 HandsontableView;
 
+
+RemoveEventListener;
 InternalWLXDestructor;
 
 Begin["`Private`"]
@@ -257,6 +263,34 @@ InputTable`EventHelper[list_] := Module[{handler, buffer, placeholder = Table[Nu
 
 SetAttributes[InputTable`EventHelper, HoldFirst]
 
+
+listener[p_, list_, uid_] := With[{}, With[{
+    rules = Map[Function[rule, rule[[1]] -> uid ], list]
+},
+    EventHandler[uid, list];
+    EventListener[p, rules]
+] ];
+
+
+WindowObj /: EventHandler[w_WindowObj, list_] := With[{
+	uid = CreateUUID[],
+	uidinternal = CreateUUID[]
+},
+	FrontSubmit[listener[Null, list, uidinternal], "Window"->w];
+	With[{o = EventObject[<|"Id"->uid|>]},
+		EventRemove[o] := With[{},
+			FrontSubmit[RemoveEventListener[uidinternal], "Window"->w];
+		];
+
+		o
+	]
+]
+
+WindowObj::clone = "Clonning of WindowObj is not supported for now";
+
+WindowObj /: EventClone[w_WindowObj] := With[{},
+	Message[WindowObj::clone]
+]
 
 End[]
 EndPackage[]
