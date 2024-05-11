@@ -123,6 +123,8 @@ let Handsontable;
 //import "handsontable/dist/handsontable.min.css";
 //import "pikaday/css/pikaday.css";
 
+core.TableHeadings = () => "TableHeadings"
+
 core.HandsontableView = async (args, env) => {
     if (!Handsontable) Handsontable = (await import("handsontable")).default;
     console.log(Handsontable);
@@ -131,6 +133,8 @@ core.HandsontableView = async (args, env) => {
 
     const options = await core._getRules(args, env);
     const height = options.Height || 200;
+
+    const width = options.Width || 500;
 
     if (options.Loader) {
         loadData = async (offset, window) => {
@@ -148,7 +152,7 @@ core.HandsontableView = async (args, env) => {
     parent.classList.add('font-sm', 'sm-controls');
     parent.style.display = "inline-block";
     //parent.style.height = '100%';
-    parent.style.width = '100%';
+    //parent.style.width = '100%';
 
     const example = document.createElement('div');
     parent.appendChild(example);
@@ -159,7 +163,16 @@ core.HandsontableView = async (args, env) => {
     const bufferMaxSize = options.Overlay || 150;
     const shift = options.Buffer || 50;
 
-    const initial = await interpretate(args[0], env);
+    let initial = await interpretate(args[0], env);
+
+    //fetch fresh data if available
+    if (server.kernel) {
+        const raw = await server.kernel.ask(options.Loader + "[" + (1) + "," + initial.length + "]");
+        console.log(raw);
+        if (raw[0] === 'List') {
+            initial = await interpretate(raw, env);
+        }
+    }
     let bufferSize = Math.min(initial.length, bufferMaxSize);
 
     const cols = [];
@@ -210,17 +223,20 @@ core.HandsontableView = async (args, env) => {
     console.log(initial.slice(0, bufferSize));
     const hot = new Handsontable(example, {
       data: initial.slice(0, bufferSize),
-      width: 'auto',
+      width: width,
       height: height,
       rowHeights: 20,
       manualRowResize: true,
+      manualColumnResize: true,
+      manualColumnMove: true,
       multiColumnSorting: true,
       filters: true,
-      columns: cols,
+
       rowHeaders: (i) => {
         return String(offset + i + 1)
 
       },
+      colHeaders: options.TableHeadings,
       manualRowMove: true,
       renderAllRows: false,
 
