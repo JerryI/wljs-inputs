@@ -1,5 +1,5 @@
 Component[OptionsPattern[]] := With[{UId = OptionValue["UId"], Label = OptionValue["Label"], Description = OptionValue["Description"]},
-    <div class="divide-y divide-gray-200 overflow-hidden rounded-md bg-white shadow">
+    <div class="divide-y divide-gray-200 overflow-hidden rounded-md bg-white shadow sm-controls">
       <div class="px-2 py-2">
         <Label/>
       </div>
