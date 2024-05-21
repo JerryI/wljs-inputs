@@ -184,12 +184,15 @@ dataset['TypeSystem`Struct'] = async (args, env) => {
 const atoms = {};
 
 dataset['TypeSystem`Atom'] = async (args, env) => {
-  if (!(args[0] in atoms)) {
+  /*if (!(args[0] in atoms) && args[0] !== 'TypeSystem`Atom') {
+    throw args;
     return await dataset['TypeSystem`AnyType'](args[0].slice(1), {...env, context:atoms}); 
-  }
+  }*/
 
   return await interpretate(args[0], {...env, context:atoms}); 
 } 
+
+atoms['List'] = core.List 
 
 atoms['TypeSystem`Enumeration'] = async (args, env) => {
   const keys = args.map((key) => interpretate(key, env));
@@ -203,6 +206,8 @@ atoms['Integer'] = async (args, env) => {return (
     element.innerText = value;
   }
 )};
+
+atoms['Real'] = atoms['Integer'] 
 
 atoms['String'] = async (args, env) => {return (
   async function (data, env, element) {
