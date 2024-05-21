@@ -212,16 +212,12 @@ Options[InputTable] = {"Height" -> 370}
 
 SetAttributes[InputTable, HoldFirst]
 
-TableView[list_List, opts: OptionsPattern[] ] := LeakyModule[{loader}, With[{},
-	If[Depth[list] < 3, Return[Module, Style["Must be a list of lists!", Background->Red] ] ];
-	
-	loader[offset_, window_] := If[offset > Length[list],
-		"EOF",
-		list[[offset ;; Min[offset + window, Length[list] ] ]]
-	];
-	
-	HandsontableView[Take[list, Min[150, Length[list] ] ], "Loader"->ToString[loader], opts]
-] ]
+TableView /: MakeBoxes[v: TableView[list_, opts___], StandardForm] := With[{},
+	If[Depth[list] < 3, Return[Module, MakeBoxes[Style["Must be a list of lists!", Background->Red], StandardForm] ] ];
+	With[{o = CreateFrontEndObject[Dataset[list, opts] ]}, MakeBoxes[o, StandardForm] ]
+]
+
+Notebook`Kernel`Inputs`DatasetMakeBox[expr_, uid_String] := CreateFrontEndObject[EditorView[ToString[expr, StandardForm], "ReadOnly"->True], uid]
 
 HandsontableView /: MakeBoxes[v_HandsontableView, StandardForm] := With[{o = CreateFrontEndObject[v]}, MakeBoxes[o, StandardForm] ]
 
