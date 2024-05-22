@@ -6912,25 +6912,16 @@ atoms['DateObject'] = async (args, env) => {return (
   }
 )};
 
-function hashCode(str) {
-    let hash = 0;
-    for (let i = 0, len = str.length; i < len; i++) {
-        let chr = str.charCodeAt(i);
-        hash = (hash << 5) - hash + chr;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-}
 
 dataset['TypeSystem`AnyType'] = () => {return (
   async function (data, contextEnv, element, store) {
     //check by hash if there such object, if not. Ask server to create one with EditorView and store.
     contextEnv.heavyLoad = true;
 
-    const hash = String(hashCode(JSON.stringify(data)));
-    console.log(hash);
+    const hash = String(interpretate.hash(data));
 
     if (!(hash in ObjectHashMap)) {
+      console.warn('Creating FE object by id '+hash);
       const command = [
         'Notebook`Kernel`Inputs`DatasetMakeBox',
         data,
