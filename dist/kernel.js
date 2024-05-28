@@ -6993,7 +6993,7 @@ dataset['TypeSystem`AnyType'] = () => {return (
 
 core.Dataset = async (args, env) => {
   const options = await core._getRules(args, env);
-  console.log(args);
+  console.log(env.options);
 
   const data = await interpretate(args[0], {...env, hold:true});
   //console.log(args[1]);
@@ -7007,6 +7007,60 @@ core.Dataset = async (args, env) => {
 
   let rows = [];
   let rowTypes;
+
+  const rowsReprocess = async (d) => {
+    let newRows;
+    if (Array.isArray(d)) {
+      
+      await Promise.all(d.map(async (item, index) => {
+        if (item[0] != 'Association' && item[0] != 'List') {
+          d[index] = item; //Skip if it is 1D array
+        } else {
+          d[index] = await interpretate(item, {...env, hold:true});
+        }
+      }));
+  
+      if (Array.isArray(d[0])) {
+        if(options.TableHeadings) {
+          headerCols = options.TableHeadings;
+        }
+
+        newRows = await Promise.all(d.map(async (row) => {
+          return Promise.all(row.map(async (cell) => cell));
+        }));
+        
+      } else {
+        if (typeof types.structure === 'function' || Array.isArray(types)) {
+          newRows = d.map((e) => [e]);
+        } else {
+          headerCols = Object.keys(d[0]);
+
+          newRows = await Promise.all(d.map(async (row) => {
+            return Promise.all(headerCols.map(async (col) => row[col]));
+          }));
+        }
+      }
+    } else {
+      headerRows = Object.keys(d);
+      newRows = await Promise.all(headerRows.map(async (row) => await interpretate(d[row], {...env, hold:true})));    
+  
+      if (Array.isArray(newRows[0])) {
+        
+        
+        newRows = await Promise.all(newRows.map(async (row) => {
+          return Promise.all(row.map(async (cell) => cell));
+        }));
+      } else {
+        headerCols = Object.keys(newRows[0]);
+
+        newRows = await Promise.all(newRows.map(async (row) => {
+          return Promise.all(headerCols.map(async (col) => row[col]));
+        }));
+      }
+    }
+
+    return newRows;
+  };
 
   if (Array.isArray(data)) {
     await Promise.all(data.map(async (item, index) => {
@@ -7137,6 +7191,11 @@ core.Dataset = async (args, env) => {
 
   env.local.store = store;
 
+  let totalLength = 0;
+  let totalOffset = 0;
+  let currentPart = 0;
+  let totalParts = 1;
+
   let offset = 0;
   let page = 0;
   const windowSize = 50;
@@ -7145,7 +7204,7 @@ core.Dataset = async (args, env) => {
   
   const viewPort = {};
 
-  const pagination = Math.ceil(rows.length / pageSize);
+  let pagination = Math.ceil(rows.length / pageSize);
 
   viewPort.rebuild = (rows, window = 50) => {    
     store.instances.forEach((el) => el.dispose());
@@ -7245,12 +7304,15 @@ core.Dataset = async (args, env) => {
     const progress = document.createElement('span');
     progress.classList.add('mr-auto');
 
+    totalLength = rows.length;
+    totalOffset = 0;
+
     const updateField = (page) => {
-      const current = Math.min((page + 1) * pageSize, rows.length);
-      progress.innerText = `${current}/${rows.length}`;
+      const current = Math.min((page + 1) * pageSize + totalOffset, totalLength);
+      progress.innerText = `${current}/${totalLength}`;
     };
 
-    updateField(0);
+    
 
     paginator.appendChild(toEnd);
     paginator.appendChild(nextButton);
@@ -7259,8 +7321,29 @@ core.Dataset = async (args, env) => {
 
     paginator.appendChild(progress);
 
+    if (env.options) if (env.options.Parts) {
+      const warning = document.createElement('span');
+      warning.innerText = "Data is partially on Kernel";
+      paginator.appendChild(warning);
+      totalLength = env.options.Total;
+      totalParts  = env.options.Parts;
+
+      env.local.callback = () => {};
+      env.local.event = env.options.RequestEvent;
+
+      core[env.options.RequestCallback] = async (args) => {
+        //console.error(args);
+        const t = await interpretate(args[0], {...env, hold:true});
+        env.local.callback(t);
+      };
+    }
+    updateField(0);
+
+    let block = false;
+
     
     toStart.addEventListener('click', ()=>{
+      if (block) return;
       page = 0;
       offset = 0;
       viewPort.rebuild(rows, windowSize);
@@ -7269,6 +7352,7 @@ core.Dataset = async (args, env) => {
     });
 
     toEnd.addEventListener('click', ()=>{
+      if (block) return;
       page = pagination - 1;
       offset = 0;
       viewPort.rebuild(rows, windowSize);
@@ -7277,7 +7361,36 @@ core.Dataset = async (args, env) => {
     });
 
     nextButton.addEventListener('click', ()=>{
-      if (page === pagination - 1) return;
+      if (block) return;
+      if (page === pagination - 1) {
+
+        if (currentPart === totalParts - 1) return;
+        currentPart = currentPart + 1;
+        totalOffset += rows.length;
+
+        page = 0;
+        offset = 0;
+
+        //callback
+        env.local.callback = async (data) => {
+          //console.error(data);
+          rows = await rowsReprocess(data);
+          pagination = Math.ceil(rows.length / pageSize);
+
+          viewPort.rebuild(rows, windowSize);
+          updateField(page);
+          table.scrollTop = 0;
+          block = false;
+        };
+
+        //request new page
+        block = true;
+        //console.log();
+        server.kernel.emitt(env.local.event, currentPart + 1);
+
+        return;
+      }
+
       page += 1;
       offset = 0;
       viewPort.rebuild(rows, windowSize);
@@ -7286,7 +7399,36 @@ core.Dataset = async (args, env) => {
     });
 
     prevButton.addEventListener('click', ()=>{
-      if (page === 0) return;
+      if (block) return;
+
+      if (page === 0) {
+        if (currentPart === 0) return;
+        currentPart = currentPart - 1;
+        totalOffset -= rows.length;
+
+        page = 0;
+        offset = 0;
+
+        //callback
+        env.local.callback = async (data) => {
+          //console.error(data);
+          rows = await rowsReprocess(data);
+          pagination = Math.ceil(rows.length / pageSize);
+
+          viewPort.rebuild(rows, windowSize);
+          updateField(page);
+          table.scrollTop = 0;
+          block = false;
+        };
+
+        //request new page
+        block = true;
+        //console.log();
+        server.kernel.emitt(env.local.event, currentPart + 1);
+
+        return;
+      }
+
       page -= 1;
       offset = 0;
       viewPort.rebuild(rows, windowSize);

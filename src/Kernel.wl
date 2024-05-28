@@ -212,8 +212,202 @@ Options[InputTable] = {"Height" -> 370}
 
 SetAttributes[InputTable, HoldFirst]
 
-TableView /: MakeBoxes[v: TableView[list_, opts___], StandardForm] := With[{},
-	With[{o = CreateFrontEndObject[Dataset[list, opts] ]}, MakeBoxes[o, StandardForm] ]
+TableView[list_, opts___] := Dataset[list, opts]
+
+System`DatasetWrapper;
+System`ProvidedOptions;
+
+System`DatasetWrapperBox;
+
+DatasetWrapper /: MakeBoxes[DatasetWrapper[ d: Dataset[data_, opts__] ], form_] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[data, opts, form]
+,
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, form]
+	]
+]
+
+splitDataset[test_, threshold_:0.5] := With[{
+  length = Length[test],
+  piece = ByteCount[test // First],
+  size = ByteCount[test]
+},
+  With[{n = Floor[size / piece], number = Ceiling[size / (threshold 1024 1024)]},
+    With[{partLength = If[# === 0, 1, #] &@ Floor[length / number]},
+      With[{tail = length - partLength number},
+        If[tail === 0, 
+			Partition[test, partLength]
+        ,
+        	Join[Partition[Drop[test, -tail], partLength], {Take[test, tail]}]
+        ]
+      ]
+    ]
+  ]
+]
+
+garbage = {};
+
+DatasetWrapperBox[ l: List[__List], opts__, form_ ] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+
+				EventHandler[event, Function[part,
+					WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+				] ];
+
+				With[{view = MakeBoxes[o, form]},
+					AppendTo[garbage, Hold[store ] ];
+					store = parts;
+					
+					view
+				]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l: List[__List], opts__, StandardForm] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+				AppendTo[garbage, Hold[store ] ];
+				store = parts;
+				view
+			]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l_List , opts__, form_ ] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+				With[{view = MakeBoxes[o, form]},
+					AppendTo[garbage, Hold[store ] ];
+					store = parts;
+					view
+				]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l_List , opts__, StandardForm] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+				AppendTo[garbage, Hold[store ] ];
+				store = parts;
+				view
+			]
+		]	
+	]
+]
+
+DatasetWrapperBox[ a: Association[r: Rule[_, _List]..] , opts__, form_ ] := With[{d = Dataset[a]},
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, form]
+	]
+];
+
+DatasetWrapperBox[ a: Association[r: Rule[_, _Association]..] , opts__, form_ ] := With[{d = Dataset[a]},
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, form]
+	]
+];
+
+DatasetWrapperBox[ l : List[__Association] , opts__, form_] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+				With[{view = MakeBoxes[o, form]},
+					AppendTo[garbage, Hold[store ] ];
+					store = parts;
+					view
+				]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l : List[__Association] , opts__, StandardForm] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm],  "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+				AppendTo[garbage, Hold[store ] ];
+				store = parts;
+				view
+			]
+		]	
+	]
 ]
 
 Notebook`Kernel`Inputs`DatasetMakeBox[expr_, uid_String] := CreateFrontEndObject[EditorView[ToString[expr, StandardForm], "ReadOnly"->True], uid]
