@@ -6797,6 +6797,9 @@ dataset['TypeSystem`Vector'] = async (args, env) => {
   return {structure: structure, number:number, vector: true};
 };
 
+dataset['TypeSystem`AnyLength'] = () => {};
+
+dataset['TypeSystem`Tuple'] = (args, env) => interpretate(args[0], env);
 
 
 dataset['TypeSystem`Assoc'] = async (args, env) => {
@@ -6971,8 +6974,8 @@ core.Dataset = async (args, env) => {
   //console.log(args[1]);
   const types = await interpretate(args[1], {...env, context: dataset});
   
-  console.log(data);
-  console.log(types);
+  //console.log(data);
+  //console.log(types);
   
   let headerCols;
   let headerRows;
@@ -6994,7 +6997,14 @@ core.Dataset = async (args, env) => {
         return Promise.all(row.map(async (cell) => cell));
       }));
 
-      rowTypes = (i,j, data, env, element, store) => types.structure.structure(data, env, element, store);
+      rowTypes = (i,j, data, env, element, store) => {
+        if (Array.isArray(types.structure)) {
+  
+          types.structure[j](data, env, element, store);
+        } else { 
+          types.structure.structure(data, env, element, store);
+        }
+      };
       
     } else {
       headerCols = Object.keys(data[0]);
