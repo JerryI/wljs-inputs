@@ -213,7 +213,6 @@ Options[InputTable] = {"Height" -> 370}
 SetAttributes[InputTable, HoldFirst]
 
 TableView /: MakeBoxes[v: TableView[list_, opts___], StandardForm] := With[{},
-	If[Depth[list] < 3, Return[Module, MakeBoxes[Style["Must be a list of lists!", Background->Red], StandardForm] ] ];
 	With[{o = CreateFrontEndObject[Dataset[list, opts] ]}, MakeBoxes[o, StandardForm] ]
 ]
 

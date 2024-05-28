@@ -188,10 +188,9 @@ const atoms = {};
 
 dataset['TypeSystem`Atom'] = async (args, env) => {
   /*if (!(args[0] in atoms) && args[0] !== 'TypeSystem`Atom') {
-    throw args;
+    //throw args;
     return await dataset['TypeSystem`AnyType'](args[0].slice(1), {...env, context:atoms}); 
   }*/
-
   return await interpretate(args[0], {...env, context:atoms}); 
 } 
 
@@ -250,6 +249,32 @@ atoms['DateObject'] = async (args, env) => {return (
   }
 )};
 
+
+atoms['Graphics'] = () => {return (
+  async function (data, contextEnv, element, store) {
+    //check by hash if there such object, if not. Ask server to create one with EditorView and store.
+    contextEnv.heavyLoad = true;
+
+    let env = {global: {}, element: element}; 
+ 
+
+    console.log('frontend executable');
+
+      
+    const copy = env;
+    
+    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, data);
+    instance.assignScope(copy);
+      
+    instance.execute();
+    store.instances.push(instance);
+    
+    //element.classList.add('frontend-view');
+  }
+)};
+
+atoms['Graphics3D'] = atoms['Graphics'];
+atoms['Image'] =  atoms['Graphics'];
 
 dataset['TypeSystem`AnyType'] = () => {return (
   async function (data, contextEnv, element, store) {
@@ -310,7 +335,7 @@ core.Dataset = async (args, env) => {
   const types = await interpretate(args[1], {...env, context: dataset});
   
   //console.log(data);
-  //console.log(types);
+  console.warn(types);
   
   let headerCols;
   let headerRows;
@@ -320,7 +345,11 @@ core.Dataset = async (args, env) => {
 
   if (Array.isArray(data)) {
     await Promise.all(data.map(async (item, index) => {
-      data[index] = await interpretate(item, {...env, hold:true});
+      if (item[0] != 'Association' && item[0] != 'List') {
+        data[index] = item; //Skip if it is 1D array
+      } else {
+        data[index] = await interpretate(item, {...env, hold:true});
+      }
     }));
 
     if (Array.isArray(data[0])) {
@@ -342,13 +371,28 @@ core.Dataset = async (args, env) => {
       }
       
     } else {
-      headerCols = Object.keys(data[0]);
+      if (typeof types.structure === 'function' || Array.isArray(types)) {
+        //prbably 1D array
+        if (Array.isArray(types)) {
+          rowTypes = (i,j, data, env, element, store) => {
+            console.warn(types[j]);
+            return types[i](data, env, element, store)
+          }
+        } else {
+          rowTypes = (i,j, data, env, element, store) => {
+            return types.structure(data, env, element, store)
+          }
+        }
+        rows = data.map((e) => [e]);
+      } else {
+        headerCols = Object.keys(data[0]);
 
-      rowTypes = (i,j, data, env, element, store) => types.structure[headerCols[j]](data, env, element, store);
+        rowTypes = (i,j, data, env, element, store) => types.structure[headerCols[j]](data, env, element, store);
       
-      rows = await Promise.all(data.map(async (row) => {
-        return Promise.all(headerCols.map(async (col) => row[col]));
-      }));
+        rows = await Promise.all(data.map(async (row) => {
+          return Promise.all(headerCols.map(async (col) => row[col]));
+        }));
+      }
     }
   } else {
     headerRows = Object.keys(data);
