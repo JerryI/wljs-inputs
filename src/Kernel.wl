@@ -212,7 +212,20 @@ Options[InputTable] = {"Height" -> 370}
 
 SetAttributes[InputTable, HoldFirst]
 
-TableView[list_, opts___] := Dataset[list, opts]
+(* convert it to Dataset *)
+TableView[list_List, opts: OptionsPattern[] ] := If[OptionValue[TableHeadings] =!= Null,
+  With[{heading = OptionValue[TableHeadings]},
+	Dataset[
+       Map[Function[row, 
+         MapIndexed[Function[{cell, index}, heading[[index//First]] -> cell], row] // Association
+       ], list]
+   , opts] // Quiet
+  ]
+,
+	Dataset[list, opts]
+]
+
+Options[TableView] = {TableHeadings -> Null, ImageSize->Automatic}
 
 System`DatasetWrapper;
 System`ProvidedOptions;
