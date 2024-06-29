@@ -225,6 +225,8 @@ TableView[list_List, opts: OptionsPattern[] ] := If[OptionValue[TableHeadings] =
 	Dataset[list, opts]
 ]
 
+TableView[data_Association, opts: OptionsPattern[] ] := Dataset[data, opts]
+
 Options[TableView] = {TableHeadings -> Null, ImageSize->Automatic}
 
 System`DatasetWrapper;
