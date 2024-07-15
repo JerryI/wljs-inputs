@@ -4,6 +4,8 @@ makeScript[Uid_, Event_String, Topic_String] := (
         const num = document.getElementById('n-<Uid/>');
         const ran = document.getElementById('r-<Uid/>');
 
+        let harpticQ = true;
+
         function isNumber(value) { return typeof value === 'number'}
 
         num.addEventListener('input', (event)=> {
@@ -15,7 +17,12 @@ makeScript[Uid_, Event_String, Topic_String] := (
         ran.addEventListener('input', (event)=> {
             if (isNaN(ran.value)) return;
             num.value = ran.value;
-            server.kernel.emitt('<Event/>', ran.value, '<Topic/>');      
+            server.kernel.emitt('<Event/>', ran.value, '<Topic/>');   
+            if (harpticQ) {
+                if (!window.electronAPI) {harpticQ = false; return}
+                if (!window.electronAPI.harptic) {harpticQ = false; return}
+                window.electronAPI.harptic();
+            }               
         });
     </script>
 )
@@ -24,6 +31,8 @@ makeScript[Uid_, Event_String, {InputTopic_String, _}] := (
     <script type="module">
         const num = document.getElementById('n-<Uid/>');
         const ran = document.getElementById('r-<Uid/>');
+
+        let harpticQ = true;
 
         function isNumber(value) { return typeof value === 'number'};
         num.addEventListener('input', (event)=> {
@@ -35,7 +44,12 @@ makeScript[Uid_, Event_String, {InputTopic_String, _}] := (
         ran.addEventListener('input', (event)=> {
             if (isNaN(ran.value)) return;
             num.value = ran.value;
-            server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');      
+            server.kernel.emitt('<Event/>', ran.value, '<InputTopic/>');  
+            if (harpticQ) {
+                if (!window.electronAPI) {harpticQ = false; return}
+                if (!window.electronAPI.harptic) {harpticQ = false; return}
+                window.electronAPI.harptic();
+            }                
         });
     </script>
 )
@@ -44,6 +58,8 @@ makeScript[Uid_, Event_String, {_, ChangeTopic_String}] := (
     <script type="module">
         const num = document.getElementById('n-<Uid/>');
         const ran = document.getElementById('r-<Uid/>');
+
+        let harpticQ = true;
 
         function isNumber(value) { return typeof value === 'number'};
                     num.addEventListener('blur', (event)=> {
@@ -54,7 +70,12 @@ makeScript[Uid_, Event_String, {_, ChangeTopic_String}] := (
                  ran.addEventListener('change', (event)=> {
                         if (isNaN(ran.value)) return;
                         num.value = ran.value;
-                        server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');      
+                        server.kernel.emitt('<Event/>', ran.value, '<ChangeTopic/>');   
+                        if (harpticQ) {
+                            if (!window.electronAPI) {harpticQ = false; return}
+                            if (!window.electronAPI.harptic) {harpticQ = false; return}
+                            window.electronAPI.harptic();
+                        }   
                     });
     </script>
 )
@@ -92,15 +113,27 @@ makeScript[Uid_, Event_String, {InputTopic_String, ChangeTopic_String}] := (
     </script>
 )
 
+Convert[n_] := With[{s = TextString[n]},
+  If[StringTake[s,1] === ".",
+    StringJoin["0", s]
+  ,
+    If[StringTake[s,-1] === ".",
+      StringJoin[s, "0"]
+    ,
+      s
+    ]
+  ]
+]
+
 Component[OptionsPattern[]] := With[{
     Event = OptionValue["Event"], 
     Topic = OptionValue["Topic"], 
     Uid = CreateUUID[], 
     Label = OptionValue["Label"], 
-    MinX = OptionValue["Min"], 
-    MaxX = OptionValue["Max"], 
-    Step = OptionValue["Step"], 
-    Initial = OptionValue["Initial"]
+    MinX = Convert[OptionValue["Min"]], 
+    MaxX = Convert[OptionValue["Max"]], 
+    Step = Convert[OptionValue["Step"]], 
+    Initial = Convert[OptionValue["Initial"]]
 },
     {
         <div class="relative shrink-0 gap-y-3 pb-2 flex flex-col sm-controls">

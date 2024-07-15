@@ -1,11 +1,13 @@
 BeginPackage["Notebook`Kernel`Inputs`", {
 	"JerryI`Misc`Events`",
+	"JerryI`Misc`Events`Promise`",
 	"JerryI`WLX`",
     "JerryI`WLX`Importer`",
 	"JerryI`Misc`WLJS`Transport`",
 	"JerryI`Misc`Language`",
 	"Notebook`EditorUtils`",
-	"Notebook`Editor`FrontendObject`"
+	"Notebook`Editor`FrontendObject`",
+	"Notebook`Editor`Kernel`FrontSubmitService`"
 }]
 
 InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"->\"\", \"Topic\"->\"Default\"] _EventObject."
@@ -19,11 +21,19 @@ InputSelect::usage = "InputSelect[{val1 -> expr1, val2 -> expr2}, defaultval] _E
 
 InputGroup::usage = "groups event objects"
 
+InputJoystick::usage = "InputJoystick[] _EventObject describes a 2D controller"
+
 TextView::usage = "TextView[symbol_, opts] shows a dynamic text-field. A generalized low-level version of InputText"
 HTMLView::usage = "HTMLView[string] will be rendered as DOM. A dynamic component"
 TableView::usage = "TableView[data_] A generalized low-level version of InputTable. Shows big chunks of data"
 
+EventListener::usage = "Internal wrapper for global input events"
+
 HandsontableView;
+
+
+RemoveEventListener;
+InternalWLXDestructor;
 
 Begin["`Private`"]
 
@@ -68,6 +78,26 @@ Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->""}
 
 TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
 	WLXEmbed[ TextX["Placeholder"->"Loading...", "UId" -> id, opts], "SideEffect"-> Global`InternalHandleTextView[value, id] ]
+]
+
+JoystickX = ImportComponent[FileNameJoin[{$troot, "Joystick.wlx"}] ];
+
+InputJoystick[] := With[{id = CreateUUID[]},
+	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{WLXEmbed[JoystickX["Event"->id] ], InternalWLXDestructor[id]}|>]
+]
+
+InputJoystick`IntegrationHelper[zero_List:{0,0}][function_] := InputJoystick`IntegrationHelper[zero, 0.01][function]
+InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_][function_] := InputJoystick`IntegrationHelper[zero, {delta, delta}][function]
+InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_List][function_] := Module[{
+	accumulated = zero,
+	handler
+},
+	handler[dxy_] := (
+		accumulated = accumulated + (dxy delta);
+		function[accumulated]
+	);
+
+	handler
 ]
 
 TextView /: MakeBoxes[t_TextView, StandardForm] := With[{o = CreateFrontEndObject[t]},
@@ -182,16 +212,220 @@ Options[InputTable] = {"Height" -> 370}
 
 SetAttributes[InputTable, HoldFirst]
 
-TableView[list_List, opts: OptionsPattern[] ] := LeakyModule[{loader}, With[{},
-	If[Depth[list] < 3, Return[Module, Style["Must be a list of lists!", Background->Red] ] ];
-	
-	loader[offset_, window_] := If[offset > Length[list],
-		"EOF",
-		list[[offset ;; Min[offset + window, Length[list] ] ]]
-	];
-	
-	HandsontableView[Take[list, Min[150, Length[list] ] ], "Loader"->ToString[loader], opts]
-] ]
+(* convert it to Dataset *)
+TableView[list_List, opts: OptionsPattern[] ] := If[OptionValue[TableHeadings] =!= Null,
+  With[{heading = OptionValue[TableHeadings]},
+	Dataset[
+       Map[Function[row, 
+         MapIndexed[Function[{cell, index}, heading[[index//First]] -> cell], row] // Association
+       ], list]
+   , opts] // Quiet
+  ]
+,
+	Dataset[list, opts]
+]
+
+TableView[data_Association, opts: OptionsPattern[] ] := Dataset[data, opts]
+
+Options[TableView] = {TableHeadings -> Null, ImageSize->Automatic}
+
+System`DatasetWrapper;
+System`ProvidedOptions;
+
+System`DatasetWrapperBox;
+
+DatasetWrapper /: MakeBoxes[DatasetWrapper[ d: Dataset[data_, opts__] ], form_] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[data, opts, form]
+,
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, form]
+	]
+]
+
+splitDataset[test_, threshold_:0.5] := With[{
+  length = Length[test],
+  piece = ByteCount[test // First],
+  size = ByteCount[test]
+},
+  With[{n = Floor[size / piece], number = Ceiling[size / (threshold 1024 1024)]},
+    With[{partLength = If[# === 0, 1, #] &@ Floor[length / number]},
+      With[{tail = length - partLength number},
+        If[tail === 0, 
+			Partition[test, partLength]
+        ,
+        	Join[Partition[Drop[test, -tail], partLength], {Take[test, tail]}]
+        ]
+      ]
+    ]
+  ]
+]
+
+garbage = {};
+
+DatasetWrapperBox[ l: List[__List], opts__, form_ ] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+
+				EventHandler[event, Function[part,
+					WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+				] ];
+
+				With[{view = MakeBoxes[o, form]},
+					AppendTo[garbage, Hold[store ] ];
+					store = parts;
+					
+					view
+				]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l: List[__List], opts__, StandardForm] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+				AppendTo[garbage, Hold[store ] ];
+				store = parts;
+				view
+			]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l_List , opts__, form_ ] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+				With[{view = MakeBoxes[o, form]},
+					AppendTo[garbage, Hold[store ] ];
+					store = parts;
+					view
+				]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l_List , opts__, StandardForm] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+				AppendTo[garbage, Hold[store ] ];
+				store = parts;
+				view
+			]
+		]	
+	]
+]
+
+DatasetWrapperBox[ a: Association[r: Rule[_, _List]..] , opts__, form_ ] := With[{d = Dataset[a]},
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, form]
+	]
+];
+
+DatasetWrapperBox[ a: Association[r: Rule[_, _Association]..] , opts__, form_ ] := With[{d = Dataset[a]},
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, form]
+	]
+];
+
+DatasetWrapperBox[ l : List[__Association] , opts__, form_] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+				With[{view = MakeBoxes[o, form]},
+					AppendTo[garbage, Hold[store ] ];
+					store = parts;
+					view
+				]
+		]	
+	]
+]
+
+DatasetWrapperBox[ l : List[__Association] , opts__, StandardForm] := With[{
+	parts = splitDataset[l],
+	req = Unique["tableRequest"],
+	event = CreateUUID[]
+},
+
+	LeakyModule[{store},
+
+		EventHandler[event, Function[part,
+			WLJSTransportSend[req[store[[part]]], Global`$Client ] 
+		] ];
+
+		With[{
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm],  "Total"->Length[l], "Parts"->Length[parts] ] ],
+				options = ToString[#, InputForm] &/@ List[opts]
+			},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+				AppendTo[garbage, Hold[store ] ];
+				store = parts;
+				view
+			]
+		]	
+	]
+]
+
+Notebook`Kernel`Inputs`DatasetMakeBox[expr_, uid_String] := CreateFrontEndObject[EditorView[ToString[expr, StandardForm], "ReadOnly"->True], uid]
 
 HandsontableView /: MakeBoxes[v_HandsontableView, StandardForm] := With[{o = CreateFrontEndObject[v]}, MakeBoxes[o, StandardForm] ]
 
@@ -233,6 +467,34 @@ InputTable`EventHelper[list_] := Module[{handler, buffer, placeholder = Table[Nu
 
 SetAttributes[InputTable`EventHelper, HoldFirst]
 
+
+listener[p_, list_, uid_] := With[{}, With[{
+    rules = Map[Function[rule, rule[[1]] -> uid ], list]
+},
+    EventHandler[uid, list];
+    EventListener[p, rules]
+] ];
+
+
+WindowObj /: EventHandler[w_WindowObj, list_] := With[{
+	uid = CreateUUID[],
+	uidinternal = CreateUUID[]
+},
+	FrontSubmit[listener[Null, list, uidinternal], "Window"->w];
+	With[{o = EventObject[<|"Id"->uid|>]},
+		EventRemove[o] := With[{},
+			FrontSubmit[RemoveEventListener[uidinternal], "Window"->w];
+		];
+
+		o
+	]
+]
+
+WindowObj::clone = "Clonning of WindowObj is not supported for now";
+
+WindowObj /: EventClone[w_WindowObj] := With[{},
+	Message[WindowObj::clone]
+]
 
 End[]
 EndPackage[]
