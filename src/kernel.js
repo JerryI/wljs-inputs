@@ -1,4 +1,84 @@
-import { deflate } from 'pako';
+
+
+function templateEngine(template, data) {
+  return template.replace(/#(\w+)/g, (match, p1) => {
+    return data[p1] !== undefined ? data[p1] : match;
+  });
+}
+
+core.CreateUUID = async () => {
+  return uuidv4();
+}
+
+core['WLXView`TemplateProcessor'] = async (args, env) => {
+  const obj = await interpretate(args[0], env);
+  env.htmlString = templateEngine(env.htmlString, obj);
+}
+
+core.WLXView = async (args, env) => {
+  
+  let html = await interpretate(args[0], env);
+  //env.uiInstanceId = uuidv4();
+  const options = await core._getRules(args, {...env, hold:true});
+
+  if (Array.isArray(html)) html = html.join('\n');
+
+  env.htmlString = html;
+
+
+  
+
+  if ('Prolog' in options) {
+    await interpretate(options.Prolog, env);
+  }
+
+  //html = replaceContextPlaceholders(html, {env: env});
+
+  const element = setInnerHTML(env.element, env.htmlString);
+
+  if ('Epilog' in options) {
+    await interpretate(options.Epilog, {...env, element: element});
+  }
+}   
+
+core.WLXView.destroy = async (args, env) => {
+
+}
+
+core.Prolog = () => "Prolog"
+core.Epilog = () => "Epilog"
+
+core["Notebook`Kernel`Inputs`Private`HandleGroup"] = async (args, env) => {
+  const data = await interpretate(args[0], {...env, hold:true});
+
+  const doc = env.element.querySelectorAll('[data-type="group"]')[0];
+  for (const fe of data) {
+      const el = document.createElement('div');
+      doc.appendChild(el);
+      await interpretate(fe, {...env, element: el});
+  }
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"] = async (args, env) => {
+  const data = await interpretate(args[0], env);
+  const name = await interpretate(args[1], env);
+  const field = await interpretate(args[2], env);
+
+  env.local.element = env.element.querySelectorAll(`[data-type="${name}"]`)[0];
+  env.local.field   = field;
+  env.local.element[field] = data;
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].update = async (args, env) => {
+  const data = await interpretate(args[0], env);
+  env.local.element[env.local.field] = data;
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].destroy = () => {
+  console.log('InternalElementUpdate destroyed!');
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].virtual = true;
 
 core.InternalWLXDestructor = async (args, env) => {
     const uid = await interpretate(args[0], env);

@@ -18,6 +18,7 @@ InputText::usage = "InputText[initial_String, opts] _EventObject"
 InputFile::usage = "InputFile[opts, \"Label\"->, \"Description\"->] _EventObject"
 InputTable::usage = ""
 InputSelect::usage = "InputSelect[{val1 -> expr1, val2 -> expr2}, defaultval] _EventObject"
+InputRadio::usage = "InputRadio[{val1 -> expr1, val2 -> expr2}, defaultval] _EventObject"
 
 InputGroup::usage = "groups event objects"
 
@@ -31,18 +32,28 @@ EventListener::usage = "Internal wrapper for global input events"
 
 HandsontableView;
 
+WLXView::usage = "WLXView[string_, otps] renders as WLX"
 
 RemoveEventListener;
 InternalWLXDestructor;
 
 Begin["`Private`"]
 
+WLXView[expr_List, opts: OptionsPattern[] ] := WLXView[StringRiffle[expr, "\n"], opts]
+Options[WLXView] = {Epilog->Null, Prolog->Identity}
+
+WLXView /: MakeBoxes[w_WLXView, StandardForm] := With[{o = CreateFrontEndObject[w]}, MakeBoxes[o, StandardForm] ]
+
+WLXView`TemplateProcessor;
+SetAttributes[WLXView`TemplateProcessor, HoldFirst]
+
+
 $troot = FileNameJoin[{$RemotePackageDirectory, "templates"}];
 
 RangeX = ImportComponent[FileNameJoin[{$troot, "Range.wlx"}] ];
 
 InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, initial_?NumberQ, opts: OptionsPattern[] ] := With[{uid = CreateUUID[]},
-	EventObject[<|"Id"->uid, "Initial"->initial, "View"->WLXEmbed[ RangeX["Min"->min, "Max"->max, "Step"->step, "Initial"->initial, "Event"->uid, opts] ]|>]
+	EventObject[<|"Id"->uid, "Initial"->initial, "View"->WLXView[ RangeX["Min"->min, "Max"->max, "Step"->step, "Initial"->initial, "Event"->uid, opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, opts: OptionsPattern[] ] := With[{middle = Round[(max + min) / 2, step]},
@@ -57,13 +68,13 @@ Options[InputRange] = {"Label"->""}
 Knob = ImportComponent[FileNameJoin[{$troot, "Button.wlx"}] ];
 
 InputButton[label_String:"Click", opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-    EventObject[<|"Id"->id, "Initial"->False, "View"->WLXEmbed[Knob["Label"->label, "Event"->id, opts] ]|>]
+    EventObject[<|"Id"->id, "Initial"->False, "View"->WLXView[Knob["Label"->label, "Event"->id, opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ];
 
 CheckboxX = ImportComponent[FileNameJoin[{$troot, "Checkbox.wlx"}] ];
 
 InputCheckbox[initial_:False, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	EventObject[<|"Id"->id, "Initial"->initial, "View"->WLXEmbed[CheckboxX["Checked"->initial, "Event"->id, opts] ]|>]
+	EventObject[<|"Id"->id, "Initial"->initial, "View"->WLXView[CheckboxX["Checked"->initial, "Event"->id, opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 Options[InputCheckbox] = {"Label"->"", "Description"->""}
@@ -71,19 +82,19 @@ Options[InputCheckbox] = {"Label"->"", "Description"->""}
 TextX = ImportComponent[FileNameJoin[{$troot, "Text.wlx"}] ];
 
 InputText[initial_:"", opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	EventObject[<|"Id"->id, "Initial"->initial, "View"->WLXEmbed[TextX[initial, "Event"->id, opts] ]|>]
+	EventObject[<|"Id"->id, "Initial"->initial, "View"->WLXView[TextX[initial, "Event"->id, opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->""}
 
 TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	WLXEmbed[ TextX["Placeholder"->"Loading...", "UId" -> id, opts], "SideEffect"-> Global`InternalHandleTextView[value, id] ]
+	WLXView[ TextX["Placeholder"->"Loading...", "UId" -> id, opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "text-string", "value"] ]
 ]
 
 JoystickX = ImportComponent[FileNameJoin[{$troot, "Joystick.wlx"}] ];
 
 InputJoystick[] := With[{id = CreateUUID[]},
-	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{WLXEmbed[JoystickX["Event"->id] ], InternalWLXDestructor[id]}|>]
+	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{WLXView[JoystickX["Event"->id], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ], InternalWLXDestructor[id]}|>]
 ]
 
 InputJoystick`IntegrationHelper[zero_List:{0,0}][function_] := InputJoystick`IntegrationHelper[zero, 0.01][function]
@@ -109,15 +120,48 @@ Options[TextView] = {"Label"->"", "Description"->"", "Placeholder"->"", "Event"-
 HTMLX = ImportComponent[FileNameJoin[{$troot, "HTML.wlx"}] ];
 
 HTMLView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	WLXEmbed[ HTMLX["Placeholder"->"Loading...", "UId" -> id, opts], "SideEffect"-> Global`InternalHandleHTMLView[value, id] ]
+	WLXView[ HTMLX["Placeholder"->"Loading...", opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "html-string", "innerHTML"] ]
 ]
 
 DropX = ImportComponent[FileNameJoin[{$troot, "Drop.wlx"}] ];
 
 InputFile[opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	EventObject[<|"Id"->id, "View"->WLXEmbed[DropX["Event"->id, opts] ]|>]
+	EventObject[<|"Id"->id, "View"->WLXView[DropX["Event"->id, opts], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
+
+RadioX = ImportComponent[FileNameJoin[{$troot, "Radio.wlx"}] ];
+
+InputRadio[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{assoc = <||>}, 
+	With[{
+		id = CreateUUID[], 
+		uid = CreateUUID[], 
+		Selected = If[DefaultItem === Null,
+			ToString @ Hash[apt // First // First]
+		,
+			ToString @ Hash[DefaultItem]
+		]
+	},
+	Map[Function[item,
+		With[{
+			keyvaluename = If[MatchQ[item, _Rule],
+				{ToString @ Hash[item // First], item // First, item // Last}
+			,
+				{ToString @ Hash[item], item, ToString[item]}
+			]
+		},
+			assoc[keyvaluename[[1]]] = <|"Value" -> keyvaluename[[2]], "Name" -> keyvaluename[[3]]|>;
+		]
+	], apt];
+
+	EventHandler[id, {_ -> Function[selected,
+		EventFire[uid, OptionValue["Topic"], assoc[[selected, "Value"]] ]
+	]}];
+
+	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->WLXView[RadioX[ "List" -> ({assoc[#, "Name"], #}&/@ Keys[assoc]), "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
+] ]
+
+Options[InputRadio] = {"Label" -> "", "Topic" -> "Default"}
 
 SelectX = ImportComponent[FileNameJoin[{$troot, "Select.wlx"}] ];
 
@@ -147,7 +191,7 @@ InputSelect[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{ass
 		EventFire[uid, OptionValue["Topic"], assoc[selected, "Value"] ]
 	]}];
 
-	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->WLXEmbed[SelectX[ #["Name"]&/@ assoc, "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ] ]|>]	
+	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->WLXView[SelectX[ #["Name"]&/@ assoc, "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->WLXView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
 ] ]
 
 Options[InputSelect] = {"Label" -> "", "Topic" -> "Default"}
@@ -165,7 +209,7 @@ InputGroup[{in__EventObject}, opts: OptionsPattern[] ] := With[{evid = CreateUUI
 	]&, List[in] ]; 
 
 	
-	With[{view = WLXEmbed[ GroupX["UId"->groupid, opts], "SideEffect"->Global`InternalHandleGroup[groupid, Table[CreateFrontEndObject[ i[[1]]["View"] ], {i, List[in]}] ] ]},
+	With[{view = WLXView[ GroupX[opts], Epilog->HandleGroup[Table[CreateFrontEndObject[ i[[1]]["View"] ], {i, List[in]}] ] ]},
 		EventObject[<|"Id"->evid, "Initial"->inputGroup[evid], "View"->view|>]
 	]
 ];
@@ -189,7 +233,7 @@ InputGroup[in_?AssocEventsListQ, opts: OptionsPattern[] ] := With[{evid = Create
 	]&, Keys[in] ]; 
 
 	
-	With[{view = WLXEmbed[ GroupX["UId"->groupid, opts], "SideEffect"->Global`InternalHandleGroup[groupid, Table[CreateFrontEndObject[ i[[1]]["View"] ], {i, Values[in]}] ] ]},
+	With[{view = WLXView[ GroupX[opts], Epilog->HandleGroup[Table[CreateFrontEndObject[ i[[1]]["View"] ], {i, Values[in]}] ] ]},
 		EventObject[<|"Id"->evid, "Initial"->inputGroup[evid], "View"->view|>]
 	]
 ];

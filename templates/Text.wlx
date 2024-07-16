@@ -1,7 +1,7 @@
 makeScript[_, _, _] := ""
-makeScript[Uid_String, Event_String, Topic_String] := (
+makeScript[_, Event_String, Topic_String] := (
     <script type="module">
-        const el = document.getElementById('<Uid/>');
+        const el = document.getElementById('#instanceId');
         console.log('WORKING!!!!');
         el.addEventListener('input', () => {
             server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<Topic/>')
@@ -9,27 +9,27 @@ makeScript[Uid_String, Event_String, Topic_String] := (
     </script>
 )
 
-makeScript[Uid_String, Event_String, {TopicChange_String, _}] := (
+makeScript[_, Event_String, {TopicChange_String, _}] := (
     <script type="module">
-        const el = document.getElementById('<Uid/>');
+        const el = document.getElementById('#instanceId');
         el.addEventListener('input', () => {
             server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicChange/>')
         })
     </script>    
 )
 
-makeScript[Uid_String, Event_String, {_, TopicBlur_String}] := (
+makeScript[_, Event_String, {_, TopicBlur_String}] := (
     <script type="module">
-        const el = document.getElementById('<Uid/>');
+        const el = document.getElementById('#instanceId');
         el.addEventListener('blur', () => {
             server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicBlur/>')
         })
     </script>    
 )
 
-makeScript[Uid_String, Event_String, {TopicChange_String, TopicBlur_String}] := (
+makeScript[_, Event_String, {TopicChange_String, TopicBlur_String}] := (
     <script type="module">
-        const el = document.getElementById('<Uid/>');
+        const el = document.getElementById('#instanceId');
         el.addEventListener('blur', () => {
             server.kernel.emitt('<Event/>', 'URLDecode["'+encodeURIComponent(el.value)+'"]', '<TopicBlur/>')
         })        
@@ -39,17 +39,17 @@ makeScript[Uid_String, Event_String, {TopicChange_String, TopicBlur_String}] := 
     </script>    
 )
 
-Component[value_String:"", OptionsPattern[]] := With[{UId = OptionValue["UId"], event = OptionValue["Event"], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], topic = OptionValue["Topic"]},
+Component[value_String:"", OptionsPattern[]] := With[{event = OptionValue["Event"], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], topic = OptionValue["Topic"]},
   {
     <div class="sm-controls">
-        <label class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
+        <label for="#instanceId" class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
         <div class="mt-1">
-          <input id="{UId}" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-6 pl-3 pr-2 text-left text-gray-500  focus:outline-none focus:ring-2 focus:ring-teal-600 sm:text-xs sm:leading-6 bg-gray-100" placeholder="{Placeholder}" aria-describedby="email-description"/>
+          <input id="#instanceId" data-type="text-string" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-6 pl-3 pr-2 text-left text-gray-500  focus:outline-none focus:ring-2 focus:ring-teal-600 sm:text-xs sm:leading-6 bg-gray-100" placeholder="{Placeholder}" aria-describedby="email-description"/>
         </div>
         <p class="mt-1 text-sm text-gray-500"><Descp/></p>
     </div>
   ,
-    makeScript[UId, event, topic]
+    makeScript[_, event, topic]
   }
 ]
 
