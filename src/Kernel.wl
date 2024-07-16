@@ -62,7 +62,7 @@ HTMLView[value_?notString, opts: OptionsPattern[] ] := With[{},
 
 RangeX = ImportComponent[FileNameJoin[{$troot, "Range.wlx"}] ];
 
-InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, initial_?NumberQ, opts: OptionsPattern[] ] := With[{uid = CreateUUID[]},
+InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, initial_?NumberQ, opts: OptionsPattern[] ] := With[{uid = OptionValue["Event"]},
 	EventObject[<|"Id"->uid, "Initial"->initial, "View"->HTMLView[ RangeX["Min"->min, "Max"->max, "Step"->step, "Initial"->initial, "Event"->uid, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
@@ -72,30 +72,46 @@ InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, opts: OptionsPattern[] ] :
 
 InputRange[min_?NumberQ, max_?NumberQ, opts: OptionsPattern[] ] := InputRange[min, max, 1, opts ]
 
-Options[InputRange] = {"Label"->""}
+InputRange[EventObject[a_Association], rest__] := InputRange[rest, "Event" -> a["Id"] ]
+
+Options[InputRange] = {"Label"->"", "Event":>CreateUUID[], "Topic"->"Default"}
 
 
 Knob = ImportComponent[FileNameJoin[{$troot, "Button.wlx"}] ];
 
-InputButton[label_String:"Click", opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
+InputButton[label_String:"Click", opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
     EventObject[<|"Id"->id, "Initial"->False, "View"->HTMLView[Knob["Label"->label, "Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ];
 
+InputButton[EventObject[a_Association], rest__] := InputButton[rest, "Event" -> a["Id"] ]
+InputButton[EventObject[a_Association], rest_]  := InputButton[rest, "Event" -> a["Id"] ]
+InputButton[EventObject[a_Association] ]  := InputButton["Event" -> a["Id"] ]
+
+Options[InputButton] = {"Class"->"", "Style"->"", "Topic"->"Default", "Event":>CreateUUID[]}
+
 CheckboxX = ImportComponent[FileNameJoin[{$troot, "Checkbox.wlx"}] ];
 
-InputCheckbox[initial_:False, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
+InputCheckbox[initial_:False, opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
 	EventObject[<|"Id"->id, "Initial"->initial, "View"->HTMLView[CheckboxX["Checked"->initial, "Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
-Options[InputCheckbox] = {"Label"->"", "Description"->""}
+InputCheckbox[EventObject[a_Association], rest_]  := InputCheckbox[rest, "Event" -> a["Id"] ]
+InputCheckbox[EventObject[a_Association], rest__] := InputCheckbox[rest, "Event" -> a["Id"] ]
+InputCheckbox[EventObject[a_Association] ] := InputCheckbox["Event" -> a["Id"] ]
+
+Options[InputCheckbox] = {"Label"->"", "Description"->"", "Topic"->"Default", "Event":>CreateUUID[]}
 
 TextX = ImportComponent[FileNameJoin[{$troot, "Text.wlx"}] ];
 
-InputText[initial_:"", opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
+InputText[initial_:"", opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
 	EventObject[<|"Id"->id, "Initial"->initial, "View"->HTMLView[TextX[initial, "Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
-Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->""}
+InputText[EventObject[a_Association], rest_]  := InputText[rest, "Event" -> a["Id"] ]
+InputText[EventObject[a_Association], rest__] := InputText[rest, "Event" -> a["Id"] ]
+InputText[EventObject[a_Association] ] := InputText["Event" -> a["Id"] ]
+
+Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->"", "Topic"->"Default", "Event":>CreateUUID[]}
 
 TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
 	HTMLView[ TextX["Placeholder"->"Loading...", "UId" -> id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "text-string", "value"] ]
@@ -103,9 +119,15 @@ TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
 
 JoystickX = ImportComponent[FileNameJoin[{$troot, "Joystick.wlx"}] ];
 
-InputJoystick[] := With[{id = CreateUUID[]},
-	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{HTMLView[JoystickX["Event"->id], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ], InternalWLXDestructor[id]}|>]
+InputJoystick[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
+	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{HTMLView[JoystickX["Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ], InternalWLXDestructor[id]}|>]
 ]
+
+InputJoystick[EventObject[a_Association], rest_]  := InputJoystick[rest, "Event" -> a["Id"] ]
+InputJoystick[EventObject[a_Association], rest__] := InputJoystick[rest, "Event" -> a["Id"] ]
+InputJoystick[EventObject[a_Association] ] := InputJoystick["Event" -> a["Id"] ]
+
+Options[InputJoystick] = {"Topic"->"Default", "Event":>CreateUUID[]}
 
 InputJoystick`IntegrationHelper[zero_List:{0,0}][function_] := InputJoystick`IntegrationHelper[zero, 0.01][function]
 InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_][function_] := InputJoystick`IntegrationHelper[zero, {delta, delta}][function]
@@ -133,17 +155,22 @@ Options[TextView] = {"Label"->"", "Description"->"", "Placeholder"->"", "Event"-
 
 DropX = ImportComponent[FileNameJoin[{$troot, "Drop.wlx"}] ];
 
-InputFile[opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
+InputFile[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
 	EventObject[<|"Id"->id, "View"->HTMLView[DropX["Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
+Options[InputFile] = {"Label"->"Drop file", "Event":>CreateUUID[]}
+
+InputFile[EventObject[a_Association], rest_]  := InputFile[rest, "Event" -> a["Id"] ]
+InputFile[EventObject[a_Association], rest__] := InputFile[rest, "Event" -> a["Id"] ]
+InputFile[EventObject[a_Association] ] := InputFile["Event" -> a["Id"] ]
 
 RadioX = ImportComponent[FileNameJoin[{$troot, "Radio.wlx"}] ];
 
 InputRadio[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{assoc = <||>}, 
 	With[{
 		id = CreateUUID[], 
-		uid = CreateUUID[], 
+		uid = OptionValue["Event"], 
 		Selected = If[DefaultItem === Null,
 			ToString @ Hash[apt // First // First]
 		,
@@ -169,14 +196,17 @@ InputRadio[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{asso
 	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->HTMLView[RadioX[ "List" -> ({assoc[#, "Name"], #}&/@ Keys[assoc]), "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
 ] ]
 
-Options[InputRadio] = {"Label" -> "", "Topic" -> "Default"}
+Options[InputRadio] = {"Label" -> "", "Topic" -> "Default", "Event":>CreateUUID[]}
+
+InputRadio[EventObject[a_Association], rest_]  := InputRadio[rest, "Event" -> a["Id"] ]
+InputRadio[EventObject[a_Association], rest__] := InputRadio[rest, "Event" -> a["Id"] ]
 
 SelectX = ImportComponent[FileNameJoin[{$troot, "Select.wlx"}] ];
 
 InputSelect[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{assoc = <||>}, 
 	With[{
 		id = CreateUUID[], 
-		uid = CreateUUID[], 
+		uid = OptionValue["Event"], 
 		Selected = If[DefaultItem === Null,
 			ToString @ Hash[apt // First // First]
 		,
@@ -202,11 +232,14 @@ InputSelect[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{ass
 	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->HTMLView[SelectX[ #["Name"]&/@ assoc, "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
 ] ]
 
-Options[InputSelect] = {"Label" -> "", "Topic" -> "Default"}
+InputSelect[EventObject[a_Association], rest_]  := InputSelect[rest, "Event" -> a["Id"] ]
+InputSelect[EventObject[a_Association], rest__] := InputSelect[rest, "Event" -> a["Id"] ]
+
+Options[InputSelect] = {"Label" -> "", "Topic" -> "Default", "Event":>CreateUUID[]}
 
 GroupX = ImportComponent[FileNameJoin[{$troot, "Group.wlx"}] ];
 
-InputGroup[{in__EventObject}, opts: OptionsPattern[] ] := With[{evid = CreateUUID[], groupid = CreateUUID[]},
+InputGroup[{in__EventObject}, opts: OptionsPattern[] ] := With[{evid = OptionValue["Event"], groupid = CreateUUID[]},
 	inputGroup[evid] = #[[1]]["Initial"] &/@ List[in];
 	
 	MapIndexed[With[{n = #2[[1]]},
@@ -222,7 +255,11 @@ InputGroup[{in__EventObject}, opts: OptionsPattern[] ] := With[{evid = CreateUUI
 	]
 ];
 
-Options[InputGroup] = {"Label" -> "", "Description"->""}
+Options[InputGroup] = {"Label" -> "", "Description"->"", "Event":>CreateUUID[]}
+
+InputGroup[EventObject[a_Association], rest_]  := InputGroup[rest, "Event" -> a["Id"] ]
+InputGroup[EventObject[a_Association], rest__] := InputGroup[rest, "Event" -> a["Id"] ]
+
 
 AssocEventsListQ[i_] := If[AssociationQ[i],
 	MatchQ[Values[i], {__EventObject}]
@@ -250,7 +287,7 @@ InputGroup[in_?AssocEventsListQ, opts: OptionsPattern[] ] := With[{evid = Create
 Unprotect[TableView]
 ClearAll[TableView]
 
-InputTable[list_, opts: OptionsPattern[] ] := LeakyModule[{loader}, With[{evid = CreateUUID[]},
+InputTable[list_, opts: OptionsPattern[] ] := LeakyModule[{loader}, With[{evid = OptionValue["Event"]},
 	If[Depth[list] < 3, Return[Module, Style["Must be a list of lists!", Background->Red] ] ];
 	loader[offset_, window_] := If[offset > Length[list],
 		"EOF",
@@ -260,7 +297,11 @@ InputTable[list_, opts: OptionsPattern[] ] := LeakyModule[{loader}, With[{evid =
 	EventObject[<|"Id"->evid, "View"->HandsontableView[Take[list, Min[150, Length[list] ] ], "Event"->evid, "Loader"->ToString[loader], opts]|>]
 ] ]
 
-Options[InputTable] = {"Height" -> 370}
+Options[InputTable] = {"Height" -> 370, "Event":>CreateUUID[]}
+
+InputTable[EventObject[a_Association], rest_]  := InputTable[rest, "Event" -> a["Id"] ]
+InputTable[EventObject[a_Association], rest__] := InputTable[rest, "Event" -> a["Id"] ]
+
 
 SetAttributes[InputTable, HoldFirst]
 
