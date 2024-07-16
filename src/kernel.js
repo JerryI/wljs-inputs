@@ -10,12 +10,12 @@ core.CreateUUID = async () => {
   return uuidv4();
 }
 
-core['WLXView`TemplateProcessor'] = async (args, env) => {
+core['HTMLView`TemplateProcessor'] = async (args, env) => {
   const obj = await interpretate(args[0], env);
   env.htmlString = templateEngine(env.htmlString, obj);
 }
 
-core.WLXView = async (args, env) => {
+core.HTMLView = async (args, env) => {
   
   let html = await interpretate(args[0], env);
   //env.uiInstanceId = uuidv4();
@@ -41,7 +41,7 @@ core.WLXView = async (args, env) => {
   }
 }   
 
-core.WLXView.destroy = async (args, env) => {
+core.HTMLView.destroy = async (args, env) => {
 
 }
 

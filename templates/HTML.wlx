@@ -1,4 +1,4 @@
-Component[OptionsPattern[]] := With[{UId = OptionValue["UId"]},
+Component[OptionsPattern[]] := With[{},
     <div class="overflow-hidden rounded-lg bg-white shadow sm-controls">
         <div data-type="html-string" class="p-2">
             <div role="status">
@@ -12,6 +12,6 @@ Component[OptionsPattern[]] := With[{UId = OptionValue["UId"]},
     </div>
 ]
 
-Options[Component] = {"UId":>CreateUUID[]}
+Options[Component] = {}
 
 Component
