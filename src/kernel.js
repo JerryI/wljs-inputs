@@ -1104,7 +1104,7 @@ core.HandsontableView.destroy = (args, env) => {
 }
 
 
-core.EventListener = async (args, env) => {
+/*core.EventListener = async (args, env) => {
     const rules = await interpretate(args[1], env);
     const copy = {...env};
 
@@ -1158,4 +1158,4 @@ core.EventListener.capturekeydown = (uid, o, env) => {
     listeners[uid].push({f: logKey, element: el});
 
     el.addEventListener("keydown", logKey);
-}
+}*/

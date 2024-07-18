@@ -28,12 +28,10 @@ TextView::usage = "TextView[symbol_, opts] shows a dynamic text-field. A general
 HTMLView::usage = "HTMLView[string, opts] will be rendered as DOM. A dynamic component"
 TableView::usage = "TableView[data_] A generalized low-level version of InputTable. Shows big chunks of data"
 
-EventListener::usage = "Internal wrapper for global input events"
 
 HandsontableView;
 
 
-RemoveEventListener;
 InternalWLXDestructor;
 
 Begin["`Private`"]
@@ -568,20 +566,22 @@ listener[p_, list_, uid_] := With[{}, With[{
     EventListener[p, rules]
 ] ];
 
-
-WindowObj /: EventHandler[w_WindowObj, list_] := With[{
-	uid = CreateUUID[],
-	uidinternal = CreateUUID[]
-},
-	FrontSubmit[listener[Null, list, uidinternal], "Window"->w];
-	With[{o = EventObject[<|"Id"->uid|>]},
-		EventRemove[o] := With[{},
-			FrontSubmit[RemoveEventListener[uidinternal], "Window"->w];
-		];
-
-		o
-	]
+eventListener[w_, Rule["Closed", function_] ] := With[{c = EventClone[ w["Socket"] ]},
+	EventHandler[c, {"Closed" -> function}]
 ]
+
+WindowObj /: EventHandler[w_WindowObj, list_List] := With[{
+	unique = Unique["WindowObjHandlers"]
+},
+	With[{handlers = eventListener[w, #] &/@ list},
+		unique /: EventRemove[unique] := With[{},
+			Print["WindowObj handlers were removed"];
+			EventRemove /@ handlers;
+		];
+	];
+	
+	unique
+] 
 
 WindowObj::clone = "Clonning of WindowObj is not supported for now";
 
