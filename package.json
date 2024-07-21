@@ -17,7 +17,8 @@
     "js": "dist/kernel.js",
     "kernel": "src/Kernel.wl",
     "category": "User's GUI",
-    "priority": 550
+    "priority": 550,
+    "cellExportRequired": true
   },
   "repository": {
     "type": "git",
