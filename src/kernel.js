@@ -41,9 +41,6 @@ core.HTMLView = async (args, env) => {
   }
 }   
 
-core.HTMLView.destroy = async (args, env) => {
-
-}
 
 core.Prolog = () => "Prolog"
 core.Epilog = () => "Epilog"
@@ -343,7 +340,7 @@ atoms['Graphics'] = () => {return (
       
     const copy = env;
     
-    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, data);
+    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, data, true);
     instance.assignScope(copy);
       
     instance.execute();
@@ -394,7 +391,7 @@ dataset['TypeSystem`AnyType'] = () => {return (
       
     const copy = env;
     const storage = await obj.get();
-    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, storage);
+    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, storage, true);
     instance.assignScope(copy);
     obj.assign(instance);
       
@@ -886,6 +883,8 @@ core.Dataset.destroy = (args, env) => {
     el.garbageCollect();
   });
 }
+
+core.Dataset.virtual = true
 
 core.Missing = () => undefined
 
