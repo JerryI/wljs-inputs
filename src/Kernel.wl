@@ -41,9 +41,9 @@ $troot = FileNameJoin[{$RemotePackageDirectory, "templates"}];
 HTMLX = ImportComponent[FileNameJoin[{$troot, "HTML.wlx"}] ];
 
 HTMLView[expr_List, opts: OptionsPattern[] ] := HTMLView[StringRiffle[expr, "\n"], opts]
-Options[HTMLView] = {Epilog->Null, Prolog->Identity}
+Options[HTMLView] = {Epilog->Null, Prolog->Identity, "Style"->"", "Class"->""}
 
-HTMLView /: MakeBoxes[w_HTMLView, StandardForm] := With[{o = CreateFrontEndObject[w]}, MakeBoxes[o, StandardForm] ]
+HTMLView /: MakeBoxes[w_HTMLView, frmt_] := With[{o = CreateFrontEndObject[w]}, MakeBoxes[o, frmt] ]
 
 HTMLView`TemplateProcessor;
 SetAttributes[HTMLView`TemplateProcessor, HoldFirst]
@@ -53,7 +53,7 @@ notString[_List] := False
 notString[_] := True
 
 HTMLView[value_?notString, opts: OptionsPattern[] ] := With[{},
-	HTMLView[ HTMLX["Placeholder"->"Loading...", opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "html-string", "innerHTML"] ]
+	HTMLView[ HTMLX[opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "html-string", "innerHTML"] ]
 ]
 
 
@@ -109,10 +109,10 @@ InputText[EventObject[a_Association], rest_]  := InputText[rest, "Event" -> a["I
 InputText[EventObject[a_Association], rest__] := InputText[rest, "Event" -> a["Id"] ]
 InputText[EventObject[a_Association] ] := InputText["Event" -> a["Id"] ]
 
-Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->"", "Topic"->"Default", "Event":>CreateUUID[]}
+Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->"", "Topic"->"Default", "Event":>CreateUUID[], ImageSize->Automatic}
 
 TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	HTMLView[ TextX["Placeholder"->"Loading...", "UId" -> id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "text-string", "value"] ]
+	HTMLView[ TextX["Placeholder"->"...", "UId" -> id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "text-string", "value"] ]
 ]
 
 JoystickX = ImportComponent[FileNameJoin[{$troot, "Joystick.wlx"}] ];
@@ -141,11 +141,11 @@ InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_List][function_] := Modul
 	handler
 ]
 
-TextView /: MakeBoxes[t_TextView, StandardForm] := With[{o = CreateFrontEndObject[t]},
-	MakeBoxes[o. StandardForm]
+TextView /: MakeBoxes[t_TextView, frmt_] := With[{o = CreateFrontEndObject[t]},
+	MakeBoxes[o, frmt]
 ]
 
-Options[TextView] = {"Label"->"", "Description"->"", "Placeholder"->"", "Event"->Null}
+Options[TextView] = {"Label"->"", "Description"->"", "Placeholder"->"", "Event"->Null, ImageSize->Automatic}
 
 
 

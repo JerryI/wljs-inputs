@@ -39,20 +39,30 @@ makeScript[_, Event_String, {TopicChange_String, TopicBlur_String}] := (
     </script>    
 )
 
-Component[value_String:"", OptionsPattern[]] := With[{event = OptionValue["Event"], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], topic = OptionValue["Topic"]},
+Component[value_String:"", OptionsPattern[]] := With[{event = OptionValue["Event"], size = OptionValue[ImageSize], Label = OptionValue["Label"], Descp = OptionValue["Description"], Placeholder = OptionValue["Placeholder"], topic = OptionValue["Topic"]},
   {
-    <div class="sm-controls">
-        <label for="#instanceId" class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
-        <div class="mt-1">
-          <input id="#instanceId" data-type="text-string" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-6 pl-3 pr-2 text-left text-gray-500  focus:outline-none focus:ring-2 focus:ring-teal-600 sm:text-xs sm:leading-6 bg-gray-100" placeholder="{Placeholder}" aria-describedby="email-description"/>
+    If[size === Automatic,
+        <div class="sm-controls">
+            <label for="#instanceId" class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
+            <div class="mt-1">
+              <input id="#instanceId" data-type="text-string" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-6 pl-3 pr-2 text-left text-gray-500  focus:outline-none focus:ring-2 focus:ring-teal-600 sm:text-xs sm:leading-6 bg-gray-100" placeholder="{Placeholder}" aria-describedby="email-description"/>
+            </div>
+            <p class="mt-1 text-sm text-gray-500"><Descp/></p>
         </div>
-        <p class="mt-1 text-sm text-gray-500"><Descp/></p>
-    </div>
+    ,
+        <div class="sm-controls">
+            <label for="#instanceId" class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
+            <div class="mt-1">
+              <input id="#instanceId" style="width: {Round[size]}px" data-type="text-string" value="{value}" type="text" class="relative cursor-default rounded-md 0 h-6 pl-3 pr-2 text-left text-gray-500  focus:outline-none focus:ring-2 focus:ring-teal-600 sm:text-xs sm:leading-6 bg-gray-100" placeholder="{Placeholder}" aria-describedby="email-description"/>
+            </div>
+            <p class="mt-1 text-sm text-gray-500"><Descp/></p>
+        </div>
+    ]
   ,
     makeScript[_, event, topic]
   }
 ]
 
-Options[Component] = {"Placeholder"->"Type here...", "Label"->"", "Description"->"", "UId":>CreateUUID[], "Event"->Null, "Topic"->"Default"}
+Options[Component] = {"Placeholder"->"Type here...", ImageSize->Automatic, "Label"->"", "Description"->"", "UId":>CreateUUID[], "Event"->Null, "Topic"->"Default"}
 
 Component
