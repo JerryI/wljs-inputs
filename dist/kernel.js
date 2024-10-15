@@ -32,9 +32,10 @@ core.HTMLView = async (args, env) => {
 
   //html = replaceContextPlaceholders(html, {env: env});
 
-  const element = setInnerHTML(env.element, env.htmlString);
+  const element = await setInnerHTMLAsync(env.element, env.htmlString);
 
   if ('Epilog' in options) {
+    console.log('Epilog');
     await interpretate(options.Epilog, {...env, element: element});
   }
 };   
@@ -887,7 +888,7 @@ core.Missing = () => undefined;
 core.TableHeadings = () => "TableHeadings";
 
 core.HandsontableView = async (args, env) => {
-    if (!Handsontable) Handsontable = (await import('./index-57d4bef8.js')).default;
+    if (!Handsontable) Handsontable = (await import('./index-752d9ad8.js')).default;
     console.log(Handsontable);
 
     let loadData = async () => 'EOF';

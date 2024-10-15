@@ -34,9 +34,10 @@ core.HTMLView = async (args, env) => {
 
   //html = replaceContextPlaceholders(html, {env: env});
 
-  const element = setInnerHTML(env.element, env.htmlString);
+  const element = await setInnerHTMLAsync(env.element, env.htmlString);
 
   if ('Epilog' in options) {
+    console.log('Epilog');
     await interpretate(options.Epilog, {...env, element: element});
   }
 }   
