@@ -247,10 +247,18 @@ dataset['TypeSystem`Struct'] = async (args, env) => {
   keys.forEach((key, index) => {
     if (Array.isArray(values[index])) {
       //list of options
-      obj[key] = async function(data, env, element) {
-        element.classList.add('font-medium');
-        element.innerText = await interpretate(data, env);
-      };
+      console.warn('KEY');
+      console.warn(values[index]);
+      if (typeof values[index][0] === 'object' || typeof values[index][0] === 'function') {
+        obj[key] = values[index];
+      } else {
+        obj[key] = async function(data, env, element) {
+          element.classList.add('font-medium');
+          element.innerText = await interpretate(data, env);
+        };
+      }
+      /**/
+      
     } else {
       //if this is a function - easy
       obj[key] = values[index];
@@ -407,7 +415,7 @@ core.Dataset = async (args, env) => {
   console.log(env.options);
 
   const data = await interpretate(args[0], {...env, hold:true});
-  //console.log(args[1]);
+  console.log(args[1]);
   const types = await interpretate(args[1], {...env, context: dataset});
   
   //console.log(data);
@@ -526,21 +534,93 @@ core.Dataset = async (args, env) => {
     }
   } else {
     headerRows = Object.keys(data);
-    rows = await Promise.all(headerRows.map(async (row) => await interpretate(data[row], {...env, hold:true})));    
+    console.error(data);
+    let oneDimArrayQ = false;
+    rows = await Promise.all(headerRows.map(async (row) => {
+      if (data[row][0] != 'Association' && data[row][0] != 'List') {
+        console.log(data[row]);
+        oneDimArrayQ = true;
+        return data[row]; //probably 1D array
+      } else {
+        return await interpretate(data[row], {...env, hold:true})
+      }
+      
+    })); 
+    
+    if (oneDimArrayQ) {
+      rows = rows.map((el) => [el]);
+    }
 
     if (Array.isArray(rows[0])) {
+
+      if (oneDimArrayQ) {
       
-      rowTypes = (i,j, data, env, element, store) => types[headerRows[i]].structure(data, env, element, store);
+        
+
+        rowTypes = (i,j, data, env, element, store) => {if (types[headerRows[i]].structure) {
+          return types[headerRows[i]].structure(data, env, element, store);
+          //return '';
+        } else {
+          //return 'Fuck';
+          if (Array.isArray(types[headerRows[i]])) {
+            return types[headerRows[i]][j](data, env, element, store)
+          } else {
+            if (typeof types[headerRows[i]] == 'function') {
+              return types[headerRows[i]](data, env, element, store)
+            } 
+            console.warn(types);
+            console.warn(headerRows);
+            console.error('Unknown structure in data types!');
+            return '';
+          }
+
+        }};
+
+      } else {
+
+        rowTypes = (i,j, data, env, element, store) => {if (types[headerRows[i]].structure) {
+          return types[headerRows[i]].structure(data, env, element, store);
+          //return '';
+        } else {
+          //return 'Fuck';
+          if (Array.isArray(types[headerRows[i]])) {
+            return types[headerRows[i]][j](data, env, element, store)
+          } else {
+            console.warn(types);
+            console.warn(headerRows);
+            console.error('Unknown structure in data types!');
+            return '';
+          }
+
+        }};        
+      }
+
       rows = await Promise.all(rows.map(async (row) => {
         return Promise.all(row.map(async (cell) => cell));
       }));
     } else {
       headerCols = Object.keys(rows[0]);
 
+      if (oneDimArrayQ) {
+        console.log('1D');
+        /*if (!headerCols.length) {
+          headerCols = Object.keys(types);
+        }
+        rows = rows.map((el, index) => {
+          const virtual = {};
+          virtual[headerCols[index]] = el;
+          return virtual;
+        });*/
+      }
+
+      console.warn(headerCols);
+      console.warn(types);
       rowTypes = (i,j, data, env, element, store) => types[headerCols[j]](data, env, element, store);
       rows = await Promise.all(rows.map(async (row) => {
         return Promise.all(headerCols.map(async (col) => row[col]));
       }));
+
+      console.log(rows);
     }
   }
 
