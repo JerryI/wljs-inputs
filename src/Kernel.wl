@@ -320,18 +320,35 @@ TableView[data_Association, opts: OptionsPattern[] ] := Dataset[data, opts]
 
 Options[TableView] = {TableHeadings -> Null, ImageSize->Automatic}
 
-System`DatasetWrapper;
+
 System`ProvidedOptions;
 
 System`DatasetWrapperBox;
 
-DatasetWrapper /: MakeBoxes[DatasetWrapper[ d: Dataset[data_, opts__] ], form_] := If[ByteCount[d] > 0.5 1024 1024, 
-	DatasetWrapperBox[data, opts, form]
+Unprotect[Dataset`MakeDatasetBoxes]
+ClearAll[Dataset`MakeDatasetBoxes]
+
+Dataset`MakeDatasetBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[data, opts, StandardForm]
 ,
 	With[{o = CreateFrontEndObject[d]},
-		MakeBoxes[o, form]
+		MakeBoxes[o, StandardForm]
 	]
 ]
+
+Unprotect[Dataset]
+
+System`WLXForm;
+
+Dataset /: MakeBoxes[d:Dataset[data_, opts__], WLXForm ] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[data, opts, WLXForm]
+,
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, WLXForm]
+	]
+]
+
+
 
 splitDataset[test_, threshold_:0.5] := With[{
   length = Length[test],
