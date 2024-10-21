@@ -321,6 +321,8 @@ TableView[data_Association, opts: OptionsPattern[] ] := Dataset[data, opts]
 Options[TableView] = {TableHeadings -> Null, ImageSize->Automatic}
 
 
+Dataset;
+
 System`ProvidedOptions;
 
 System`DatasetWrapperBox;
