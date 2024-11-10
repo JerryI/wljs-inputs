@@ -327,10 +327,20 @@ System`ProvidedOptions;
 
 System`DatasetWrapperBox;
 
+Dataset`MakeDatasetBoxes;
+
 Unprotect[Dataset`MakeDatasetBoxes]
 ClearAll[Dataset`MakeDatasetBoxes]
 
 Dataset`MakeDatasetBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[data, opts, StandardForm]
+,
+	With[{o = CreateFrontEndObject[d]},
+		MakeBoxes[o, StandardForm]
+	]
+]
+
+Dataset /: Dataset`MakeDatasetBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 1024 1024, 
 	DatasetWrapperBox[data, opts, StandardForm]
 ,
 	With[{o = CreateFrontEndObject[d]},
@@ -357,9 +367,6 @@ Dataset`MakeDatasetWLXBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 
 		MakeBoxes[o, WLXForm]
 	]
 ]
-
-Dataset /: MakeBoxes[Dataset`Formatting`PackagePrivate`ds_Dataset?System`Private`HoldNoEntryQ, WLXForm]/;Refresh[!BoxForm`UseTextFormattingQ&&TypeSystem`ValidTypeQ[Dataset`GetType[Dataset`Formatting`PackagePrivate`ds]],None]:= Dataset`MakeDatasetWLXBoxes[Dataset`Formatting`PackagePrivate`ds]
-
 
 
 splitDataset[test_, threshold_:0.5] := With[{
