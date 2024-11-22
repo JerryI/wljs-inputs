@@ -153,8 +153,28 @@ Options[TextView] = {"Label"->"", "Description"->"", "Placeholder"->"", "Event"-
 
 DropX = ImportComponent[FileNameJoin[{$troot, "Drop.wlx"}] ];
 
-InputFile[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
-	EventObject[<|"Id"->id, "View"->HTMLView[DropX["Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+filechunks = <||>;
+InputFile[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], internal = CreateUUID[]},
+	EventHandler[internal, {
+		"Transaction" -> (EventFire[id, "Transaction", #]&), (* forward to the main event *)
+		"File" -> (EventFire[id, "File", #]&), (* forward to the main event *)
+
+		"Chunk" -> Function[payload, With[{hash = StringJoin[payload["Name"], payload["Transaction"] ], chunk = payload["Chunk"] },
+
+			If[!KeyExistsQ[filechunks, hash ], filechunks[hash] = <||>];
+			filechunks[hash] = Join[filechunks[hash], <|chunk -> payload["Data"]|>];
+
+			If[Length[Keys[filechunks[hash] ] ] === payload["Chunks"],
+				With[{merged = StringJoin @@ (KeySort[filechunks[hash] ] // Values)},
+					filechunks[hash] = .;
+					
+					EventFire[id, "File", <|"Transaction" -> payload["Transaction"], "Name" -> payload["Name"], "Data" -> merged|>];
+				]
+			]
+		] ]
+	}];
+
+	EventObject[<|"Id"->id, "View"->HTMLView[DropX["Event"->internal, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 Options[InputFile] = {"Label"->"Drop file", "Event":>CreateUUID[]}

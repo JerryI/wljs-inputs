@@ -26,6 +26,16 @@ Component[OptionsPattern[]] := With[{Class = OptionValue["Class"], Event = Optio
 
         let dragged = false;
 
+        const splitStringIntoChunks0 = (str, chunkSize) => {
+            if (!str || chunkSize <= 0) return [];
+            
+            const chunks = [];
+            for (let i = 0; i < str.length; i += chunkSize) {
+              chunks.push(str.slice(i, Math.min(i + chunkSize, str.length)));
+            }
+            return chunks;
+        }
+
         const transferFiles = (list) => {
             if (list.length == 0) return;
             const id = new Date().valueOf();
@@ -59,7 +69,14 @@ Component[OptionsPattern[]] := With[{Class = OptionValue["Class"], Event = Optio
             
             for (const file of list) {
                 readFile(file, (name, result) => {
-                    server.kernel.emitt('<Event/>', `<|"Transaction" -> "${id}", "Name" -> "${name}", "Data" -> "${result}"|>`, 'File');
+                    if (result.length > 5 * 1024 * 1024) {
+                        const chunks = splitStringIntoChunks0(result, 5 * 1024 * 1024);
+                        chunks.forEach((chunk, index) => {
+                            server.kernel.emitt('<Event/>', `<|"Transaction" -> "${id}", "Chunk"->${index+1}, "Chunks"->${chunks.length}, "Name" -> "${name}", "Data" -> "${chunk}"|>`, 'Chunk');
+                        });                        
+                    } else {
+                        server.kernel.emitt('<Event/>', `<|"Transaction" -> "${id}", "Name" -> "${name}", "Data" -> "${result}"|>`, 'File');
+                    }
                     count++;
                     progress(count);
                 })
