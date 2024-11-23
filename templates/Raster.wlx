@@ -92,6 +92,7 @@ Component[OptionsPattern[]] := With[{
           const overlayMode = <OverlayMode/>;
           if (overlayMode) {
             const container = document.createElement("div");
+            container.classList.add("relative");
             env.element.appendChild(container);
             
 
