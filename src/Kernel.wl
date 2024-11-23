@@ -82,12 +82,24 @@ Options[InputRange] = {"Label"->"", "Event":>CreateUUID[], "Topic"->"Default"}
 
 RasterX = ImportComponent[FileNameJoin[{$troot, "Raster.wlx"}] ];
 
-InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], handler = Unique["handler"]},
-	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->id, opts, "Handler"->handler],  Epilog->{handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], topic = OptionValue["Topic"],handler = Unique["handler"], internal = CreateUUID[]},
+	EventHandler[internal, {
+		_ -> Function[data, 
+			EventFire[id, topic, ImportString[data, "Base64"] ]
+		]
+	}];
+
+	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
-InputRaster[img_Image, opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], handler = Unique["handler"]},
-	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->id, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+InputRaster[img_Image, opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], handler = Unique["handler"], topic = OptionValue["Topic"], internal = CreateUUID[]},
+	EventHandler[internal, {
+		_ -> Function[data, 
+			EventFire[id, topic, ImportString[data, "Base64"] ]
+		]
+	}];
+
+	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 Options[InputRaster] = {"Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1}
