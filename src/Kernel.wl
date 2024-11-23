@@ -14,6 +14,8 @@ InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"
 InputCheckbox::usage = "InputCheckbox[state_Bool, \"Label\"->, \"Description\"->, , \"Topic\"->\"Default\"] _EventObject. A standard checkbox"
 InputButton::usage = "InputButton[label_String, \"Topic\"->\"Default\"] _EventObject. A standard button"
 
+InputRaster::usage = "InputRaster[opts] _EventObject. A raster input"
+
 InputText::usage = "InputText[initial_String, opts] _EventObject"
 InputFile::usage = "InputFile[opts, \"Label\"->, \"Description\"->] _EventObject"
 InputTable::usage = ""
@@ -74,6 +76,14 @@ InputRange[EventObject[a_Association], rest__] := InputRange[rest, "Event" -> a[
 
 Options[InputRange] = {"Label"->"", "Event":>CreateUUID[], "Topic"->"Default"}
 
+
+RasterX = ImportComponent[FileNameJoin[{$troot, "Raster.wlx"}] ];
+
+InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
+	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+]
+
+Options[InputRaster] = {"Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1}
 
 Knob = ImportComponent[FileNameJoin[{$troot, "Button.wlx"}] ];
 

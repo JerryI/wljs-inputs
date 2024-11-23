@@ -1,0 +1,138 @@
+Component[OptionsPattern[]] := With[{
+    Event = OptionValue["Event"], 
+    Topic = OptionValue["Topic"], 
+    Uid = CreateUUID[], 
+    ImageSizeJSON = ExportString[OptionValue[ImageSize], "JSON"]
+},
+<div id="#instanceId" class="subscript-tail sm-controls cursor-default rounded-md 0 py-1 px-2 bg-gray-100 text-left text-gray-500 ring-1 ring-inset ring-gray-400 flex-row">
+  <canvas
+        id="#instanceId-canvas" class="shadow-sm p-2 rounded-md ring-1 ring-inset ring-gray-300"></canvas>
+
+  <div class="flex flex-col gap-y-1">
+  <input type="range" min="1" max="50" value="25" class="sm-controls w-full mt-3 mb-3 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer " id="#instanceId-sizeRange" />
+      <fieldset>
+        <div class="mt-2 flex-row gap-x-2 flex">
+          
+          <div class="flex items-center"><input name="#instanceId-colorRadio" value="black" checked="true" type="radio" class="h-4 w-4 border-gray-300 text-teal-600  focus:ring-teal-600"/><label class="ml-3 block text-sm font-medium  leading-6 text-gray-900">Black</label></div>
+
+                    <div class="flex items-center"><input name="#instanceId-colorRadio" value="white" type="radio" class="h-4 w-4 border-gray-300 text-teal-600  focus:ring-teal-600"/><label class="ml-3 block text-sm font-medium  leading-6 text-gray-900">White</label></div>
+
+                    <div class="flex items-center"><input name="#instanceId-colorRadio" value="red" type="radio" class="h-4 w-4 border-gray-300 text-teal-600  focus:ring-teal-600"/><label class="ml-3 block text-sm font-medium  leading-6 text-gray-900">Red</label></div>
+
+                    <div class="flex items-center"><input name="#instanceId-colorRadio" value="green" type="radio" class="h-4 w-4 border-gray-300 text-teal-600  focus:ring-teal-600"/><label class="ml-3 block text-sm font-medium  leading-6 text-gray-900">Green</label></div>
+
+                    <div class="flex items-center"><input name="#instanceId-colorRadio" value="blue" type="radio" class="h-4 w-4 border-gray-300 text-teal-600  focus:ring-teal-600"/><label class="ml-3 block text-sm font-medium  leading-6 text-gray-900">Blue</label></div>
+
+          <div class="flex items-center ml-auto"><button class="sm-controls rounded bg-white px-2 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" id="#instanceId-clear">Clear</button></div>
+        </div>
+      
+        
+          </fieldset>
+
+
+  </div>
+<script type="module">
+
+const sizeElement = document.getElementById("#instanceId-sizeRange");
+let size = sizeElement.value;
+sizeElement.oninput = (e) => {
+  size = e.target.value;
+};
+
+const colorElement = document.getElementsByName("#instanceId-colorRadio");
+let color;
+colorElement.forEach((c) => {
+  if (c.checked) color = c.value;
+});
+
+colorElement.forEach((c) => {
+  c.onclick = () => {
+    color = c.value;
+  };
+});
+
+function drawOnImage(image = null) {
+  const canvasElement = document.getElementById("#instanceId-canvas");
+  const context = canvasElement.getContext("2d");
+
+  let imageWidth, imageHeight;
+  
+  const isize = <ImageSizeJSON/>;
+
+  if (Array.isArray(isize)) {
+    imageWidth = isize[0];
+    imageHeight = isize[1];
+  } else {
+    imageWidth = isize;
+    imageHeight = isize * 0.75;
+  }
+
+  // rescaling the canvas element
+  canvasElement.width = imageWidth;
+  canvasElement.height = imageHeight;
+
+  // if an image is present,
+  // the image passed as a parameter is drawn in the canvas
+  if (image) {
+
+
+    context.drawImage(image, 0, 0, imageWidth, imageHeight);
+  }
+
+  const clearElement = document.getElementById("#instanceId-clear");
+  clearElement.onclick = () => {
+    context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  };
+
+  let isDrawing;
+
+  canvasElement.onmousedown = (e) => {
+    isDrawing = true;
+    context.beginPath();
+    context.lineWidth = size;
+    context.strokeStyle = color;
+    context.lineJoin = "round";
+    context.lineCap = "round";
+    context.moveTo(e.offsetX, e.offsetY);
+  };
+
+  canvasElement.onmousemove = (e) => {
+
+    if (isDrawing) {
+      context.lineTo(e.offsetX, e.offsetY);
+      context.stroke();
+    }
+  };
+
+  canvasElement.onmouseup = function () {
+    isDrawing = false;
+    context.closePath();
+    canvasElement.toBlob((res) => {
+    
+      const reader = new FileReader();
+
+reader.readAsDataURL(res); 
+reader.onloadend = function() {
+    const offset = 'data:image/png;base64,'.length;
+    const base64data = reader.result.slice(offset);                
+    
+    server.kernel.emitt('<Event/>', '"'+base64data+'"', '<Topic/>');
+    return;
+}
+    });
+    
+    
+  };
+}
+
+
+drawOnImage();
+
+</script>
+</div>
+]
+
+Options[Component] = {ImageSize -> 350, Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
+
+
+Component
