@@ -89,8 +89,14 @@ InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], topic =
 		]
 	}];
 
-	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	If[MatchQ[OptionValue["OverlayImage"], _Image],
+		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{OptionValue["OverlayImage"] // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	,
+		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	]
 ]
+
+InputRaster::err = "`1`";
 
 InputRaster[img_Image, opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], handler = Unique["handler"], topic = OptionValue["Topic"], internal = CreateUUID[]},
 	EventHandler[internal, {
@@ -98,11 +104,20 @@ InputRaster[img_Image, opts: OptionsPattern[] ] := With[{id = OptionValue["Event
 			EventFire[id, topic, ImportString[data, "Base64"] ]
 		]
 	}];
-
-	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	
+	If[MatchQ[OptionValue["OverlayImage"], _Image],
+		Message[InputRaster::err, "OverlayImage is not supported if an Image was provided"];
+		$Failed
+	,
+		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	]
 ]
 
-Options[InputRaster] = {"Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1}
+InputRaster[EventObject[a_Association], rest__] := InputRaster[rest, "Event" -> a["Id"] ]
+InputRaster[EventObject[a_Association], rest_]  := InputRaster[rest, "Event" -> a["Id"] ]
+InputRaster[EventObject[a_Association] ]  := InputRaster["Event" -> a["Id"] ]
+
+Options[InputRaster] = {"Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1, "OverlayImage"->None}
 
 Knob = ImportComponent[FileNameJoin[{$troot, "Button.wlx"}] ];
 

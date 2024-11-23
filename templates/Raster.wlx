@@ -3,7 +3,8 @@ Component[OptionsPattern[]] := With[{
     Topic = OptionValue["Topic"], 
     Uid = CreateUUID[], 
     TemporalHandler = OptionValue["Handler"],
-    ImageSizeJSON = ExportString[OptionValue[ImageSize], "JSON"]
+    ImageSizeJSON = ExportString[OptionValue[ImageSize], "JSON"],
+    OverlayMode = If[MatchQ[OptionValue["OverlayImage"], _Image], "true", "false"]
 },
 {
   <div class="flex flex-col gap-y-1">
@@ -88,10 +89,38 @@ Component[OptionsPattern[]] := With[{
           env.element.appendChild(canvasElement);
 
         } else {
-          canvasElement = canvasElement[0];
+          const overlayMode = <OverlayMode/>;
+          if (overlayMode) {
+            const container = document.createElement("div");
+            env.element.appendChild(container);
+            
+
+            canvasElement[0].classList.add("absolute", "inset-0", "pointer-events-none", "shadow-sm", "rounded-md");
+            //canvasElement[0].style.zIndex = -1;
+            canvasElement[0].style.opacity = 0.3;
+            container.appendChild(canvasElement[0]);
+
+            console.log(canvasElement[0]);
+
+            const newCanvasElement = document.createElement("canvas");
+            newCanvasElement.width = canvasElement[0].width;
+            newCanvasElement.height = canvasElement[0].height;
+            newCanvasElement.style.height = canvasElement[0].style.height;
+            newCanvasElement.style.width = canvasElement[0].style.width;
+
+            container.appendChild(newCanvasElement);
+
+
+            
+            canvasElement = newCanvasElement;
+
+
+          } else {
+            canvasElement = canvasElement[0];
+          }
         }
 
-        canvasElement.classList.add("shadow-sm", "p-2", "rounded-md");
+        canvasElement.classList.add("shadow-sm", "rounded-md");
         const context = canvasElement.getContext("2d");
       
 
@@ -152,6 +181,6 @@ Component[OptionsPattern[]] := With[{
 }
 ]
 
-Options[Component] = {ImageSize -> 350, "Handler" -> "RasterXYZ", Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
+Options[Component] = {"OverlayImage"->None, ImageSize -> 350, "Handler" -> "RasterXYZ", Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
 
 Component
