@@ -13,6 +13,19 @@ core['HTMLView`TemplateProcessor'] = async (args, env) => {
   env.htmlString = templateEngine(env.htmlString, obj);
 };
 
+core['HTMLView`InlineJSModule'] = async (args, env) => {
+  let str = await interpretate(args[0], env);
+
+  if (str.includes('<script>')) {
+    str = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  }
+
+  const newScript = document.createElement("script");
+  newScript.appendChild(document.createTextNode('{\n'+str+'\n}'));
+
+  env.element.appendChild(newScript);
+};
+
 core.HTMLView = async (args, env) => {
   
   let html = await interpretate(args[0], env);
@@ -553,7 +566,7 @@ core.Dataset = async (args, env) => {
 
     if (Array.isArray(rows[0])) {
 
-      if (oneDimArrayQ) {
+      if (oneDimArrayQ) { //fixme!!!
       
         
 
@@ -968,7 +981,7 @@ core.Missing = () => undefined;
 core.TableHeadings = () => "TableHeadings";
 
 core.HandsontableView = async (args, env) => {
-    if (!Handsontable) Handsontable = (await import('./index-752d9ad8.js')).default;
+    if (!Handsontable) Handsontable = (await import('./index-112171eb.js')).default;
     console.log(Handsontable);
 
     let loadData = async () => 'EOF';

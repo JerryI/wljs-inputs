@@ -14,7 +14,7 @@ InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"
 InputCheckbox::usage = "InputCheckbox[state_Bool, \"Label\"->, \"Description\"->, , \"Topic\"->\"Default\"] _EventObject. A standard checkbox"
 InputButton::usage = "InputButton[label_String, \"Topic\"->\"Default\"] _EventObject. A standard button"
 
-InputRaster::usage = "InputRaster[opts] _EventObject. A raster input"
+InputRaster::usage = "InputRaster[opts] _EventObject. A raster input. InputRaster[img_Image, opts] "
 
 InputText::usage = "InputText[initial_String, opts] _EventObject"
 InputFile::usage = "InputFile[opts, \"Label\"->, \"Description\"->] _EventObject"
@@ -50,6 +50,9 @@ HTMLView /: MakeBoxes[w_HTMLView, frmt_] := With[{o = CreateFrontEndObject[w]}, 
 HTMLView`TemplateProcessor;
 SetAttributes[HTMLView`TemplateProcessor, HoldFirst]
 
+HTMLView`AnonymousJavascript;
+SetAttributes[HTMLView`AnonymousJavascript, HoldFirst]
+
 notString[_String] := False
 notString[_List] := False
 notString[_] := True
@@ -79,8 +82,12 @@ Options[InputRange] = {"Label"->"", "Event":>CreateUUID[], "Topic"->"Default"}
 
 RasterX = ImportComponent[FileNameJoin[{$troot, "Raster.wlx"}] ];
 
-InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
-	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], handler = Unique["handler"]},
+	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->id, opts, "Handler"->handler],  Epilog->{handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+]
+
+InputRaster[img_Image, opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], handler = Unique["handler"]},
+	EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->id, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 Options[InputRaster] = {"Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1}

@@ -15,6 +15,19 @@ core['HTMLView`TemplateProcessor'] = async (args, env) => {
   env.htmlString = templateEngine(env.htmlString, obj);
 }
 
+core['HTMLView`InlineJSModule'] = async (args, env) => {
+  let str = await interpretate(args[0], env);
+
+  if (str.includes('<script>')) {
+    str = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  }
+
+  const newScript = document.createElement("script");
+  newScript.appendChild(document.createTextNode('{\n'+str+'\n}'));
+
+  env.element.appendChild(newScript);
+}
+
 core.HTMLView = async (args, env) => {
   
   let html = await interpretate(args[0], env);

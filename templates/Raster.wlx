@@ -2,15 +2,13 @@ Component[OptionsPattern[]] := With[{
     Event = OptionValue["Event"], 
     Topic = OptionValue["Topic"], 
     Uid = CreateUUID[], 
+    TemporalHandler = OptionValue["Handler"],
     ImageSizeJSON = ExportString[OptionValue[ImageSize], "JSON"]
 },
-<div id="#instanceId" class="subscript-tail sm-controls cursor-default rounded-md 0 py-1 px-2 bg-gray-100 text-left text-gray-500 ring-1 ring-inset ring-gray-400 flex-row">
-  <canvas
-        id="#instanceId-canvas" class="shadow-sm p-2 rounded-md ring-1 ring-inset ring-gray-300"></canvas>
-
+{
   <div class="flex flex-col gap-y-1">
   <input type="range" min="1" max="50" value="25" class="sm-controls w-full mt-3 mb-3 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer " id="#instanceId-sizeRange" />
-      <fieldset>
+  <fieldset>
         <div class="mt-2 flex-row gap-x-2 flex">
           
           <div class="flex items-center"><input name="#instanceId-colorRadio" value="black" checked="true" type="radio" class="h-4 w-4 border-gray-300 text-teal-600  focus:ring-teal-600"/><label class="ml-3 block text-sm font-medium  leading-6 text-gray-900">Black</label></div>
@@ -27,112 +25,133 @@ Component[OptionsPattern[]] := With[{
         </div>
       
         
-          </fieldset>
-
+  </fieldset>
 
   </div>
-<script type="module">
-
-const sizeElement = document.getElementById("#instanceId-sizeRange");
-let size = sizeElement.value;
-sizeElement.oninput = (e) => {
-  size = e.target.value;
-};
-
-const colorElement = document.getElementsByName("#instanceId-colorRadio");
-let color;
-colorElement.forEach((c) => {
-  if (c.checked) color = c.value;
-});
-
-colorElement.forEach((c) => {
-  c.onclick = () => {
-    color = c.value;
-  };
-});
-
-function drawOnImage(image = null) {
-  const canvasElement = document.getElementById("#instanceId-canvas");
-  const context = canvasElement.getContext("2d");
-
-  let imageWidth, imageHeight;
-  
-  const isize = <ImageSizeJSON/>;
-
-  if (Array.isArray(isize)) {
-    imageWidth = isize[0];
-    imageHeight = isize[1];
-  } else {
-    imageWidth = isize;
-    imageHeight = isize * 0.75;
-  }
-
-  // rescaling the canvas element
-  canvasElement.width = imageWidth;
-  canvasElement.height = imageHeight;
-
-  // if an image is present,
-  // the image passed as a parameter is drawn in the canvas
-  if (image) {
 
 
-    context.drawImage(image, 0, 0, imageWidth, imageHeight);
-  }
+  ,
 
-  const clearElement = document.getElementById("#instanceId-clear");
-  clearElement.onclick = () => {
-    context.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  };
+  <script type="module">
+    core['<TemporalHandler/>'] = async (args, env) => {
+      env.element.classList.add(...(("sm-controls cursor-default rounded-md 0 py-1 px-2 bg-gray-100 text-left text-gray-500 ring-1 ring-inset ring-gray-400 gap-y-1").split(" ")));
+      env.element.style.flexDirection = "column-reverse";
+      
+      const sizeElement = document.getElementById("#instanceId-sizeRange");
+      let size = sizeElement.value;
+      sizeElement.oninput = (e) => {
+        size = e.target.value;
+      };
 
-  let isDrawing;
+      const colorElement = document.getElementsByName("#instanceId-colorRadio");
+      let color;
+      colorElement.forEach((c) => {
+        if (c.checked) color = c.value;
+      });
 
-  canvasElement.onmousedown = (e) => {
-    isDrawing = true;
-    context.beginPath();
-    context.lineWidth = size;
-    context.strokeStyle = color;
-    context.lineJoin = "round";
-    context.lineCap = "round";
-    context.moveTo(e.offsetX, e.offsetY);
-  };
+      colorElement.forEach((c) => {
+        c.onclick = () => {
+          color = c.value;
+        };
+      });
 
-  canvasElement.onmousemove = (e) => {
+      const dpr = 1.0 / window.devicePixelRatio;
 
-    if (isDrawing) {
-      context.lineTo(e.offsetX, e.offsetY);
-      context.stroke();
+      function drawOnImage(image = null) {
+        let canvasElement = env.element.getElementsByTagName("canvas");
+        console.warn(canvasElement);
+
+
+        if (canvasElement.length == 0) {
+          console.log("Creating canvas...");
+          canvasElement = document.createElement("canvas");
+          let imageWidth, imageHeight;
+
+          const isize = <ImageSizeJSON/>;
+        
+          if (Array.isArray(isize)) {
+            imageWidth = isize[0];
+            imageHeight = isize[1];
+          } else {
+            imageWidth = isize;
+            imageHeight = isize * 0.75;
+          }
+        
+          // rescaling the canvas element
+          canvasElement.width = imageWidth;
+          canvasElement.height = imageHeight;
+
+          canvasElement.style.width = imageWidth * dpr + "px";
+          canvasElement.style.height = imageHeight * dpr + "px";
+
+
+          env.element.appendChild(canvasElement);
+
+        } else {
+          canvasElement = canvasElement[0];
+        }
+
+        canvasElement.classList.add("shadow-sm", "p-2", "rounded-md");
+        const context = canvasElement.getContext("2d");
+      
+
+      
+        const clearElement = document.getElementById("#instanceId-clear");
+        clearElement.onclick = () => {
+          context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        };
+      
+        let isDrawing;
+      
+        canvasElement.onmousedown = (e) => {
+          isDrawing = true;
+          context.beginPath();
+          context.lineWidth = size;
+          context.strokeStyle = color;
+          context.lineJoin = "round";
+          context.lineCap = "round";
+          context.moveTo(e.offsetX/dpr, e.offsetY/dpr);
+        };
+      
+        canvasElement.onmousemove = (e) => {
+        
+          if (isDrawing) {
+            context.lineTo(e.offsetX/dpr, e.offsetY/dpr);
+            context.stroke();
+          }
+        };
+      
+        canvasElement.onmouseup = function () {
+          isDrawing = false;
+          context.closePath();
+          canvasElement.toBlob((res) => {
+          
+            const reader = new FileReader();
+          
+      reader.readAsDataURL(res); 
+      reader.onloadend = function() {
+          const offset = 'data:image/png;base64,'.length;
+          const base64data = reader.result.slice(offset);                
+
+          server.kernel.emitt('<Event/>', '"'+base64data+'"', '<Topic/>');
+          return;
+      }
+          });
+
+
+        };
+      }
+
+
+      drawOnImage();
+
+
+      delete core['<TemporalHandler/>'];
     }
-  };
-
-  canvasElement.onmouseup = function () {
-    isDrawing = false;
-    context.closePath();
-    canvasElement.toBlob((res) => {
-    
-      const reader = new FileReader();
-
-reader.readAsDataURL(res); 
-reader.onloadend = function() {
-    const offset = 'data:image/png;base64,'.length;
-    const base64data = reader.result.slice(offset);                
-    
-    server.kernel.emitt('<Event/>', '"'+base64data+'"', '<Topic/>');
-    return;
+  </script>
 }
-    });
-    
-    
-  };
-}
-
-
-drawOnImage();
-
-</script>
-</div>
 ]
 
-Options[Component] = {ImageSize -> 350, Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
-
+Options[Component] = {ImageSize -> 350, "Handler" -> "RasterXYZ", Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
 
 Component
