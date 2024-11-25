@@ -2,6 +2,7 @@ Component[OptionsPattern[]] := With[{
     Event = OptionValue["Event"], 
     Topic = OptionValue["Topic"], 
     Uid = CreateUUID[], 
+    AllowUpdateWhileDrawing = If[OptionValue["AllowUpdateWhileDrawing"], "true", "false"],
     TemporalHandler = OptionValue["Handler"],
     ImageSizeJSON = ExportString[OptionValue[ImageSize], "JSON"],
     OverlayMode = If[MatchQ[OptionValue["OverlayImage"], _Image], "true", "false"]
@@ -124,36 +125,7 @@ Component[OptionsPattern[]] := With[{
         canvasElement.classList.add("shadow-sm", "rounded-md");
         const context = canvasElement.getContext("2d");
       
-
-      
-        const clearElement = document.getElementById("#instanceId-clear");
-        clearElement.onclick = () => {
-          context.clearRect(0, 0, canvasElement.width, canvasElement.height);
-        };
-      
-        let isDrawing;
-      
-        canvasElement.onmousedown = (e) => {
-          isDrawing = true;
-          context.beginPath();
-          context.lineWidth = size;
-          context.strokeStyle = color;
-          context.lineJoin = "round";
-          context.lineCap = "round";
-          context.moveTo(e.offsetX/dpr, e.offsetY/dpr);
-        };
-      
-        canvasElement.onmousemove = (e) => {
-        
-          if (isDrawing) {
-            context.lineTo(e.offsetX/dpr, e.offsetY/dpr);
-            context.stroke();
-          }
-        };
-      
-        canvasElement.onmouseup = function () {
-          isDrawing = false;
-          context.closePath();
+        const uploadImage = () => {
           canvasElement.toBlob((res) => {
           
             const reader = new FileReader();
@@ -167,7 +139,52 @@ Component[OptionsPattern[]] := With[{
           return;
       }
           });
+        }
+      
+        const clearElement = document.getElementById("#instanceId-clear");
+        clearElement.onclick = () => {
+          context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        };
+      
+        let isDrawing;
+        let didMove = false;
+      
+        canvasElement.onmousedown = (e) => {
+          isDrawing = true;
+          didMove = false;
+          context.beginPath();
+          context.lineWidth = size;
+          context.strokeStyle = color;
+          context.lineJoin = "round";
+          context.lineCap = "round";
+          context.moveTo(e.offsetX/dpr, e.offsetY/dpr);
+        };
+      
+        canvasElement.onmousemove = (e) => {
+        
+          if (isDrawing) {
+            didMove = true;
+            context.lineTo(e.offsetX/dpr, e.offsetY/dpr);
+            context.stroke();
 
+            if (<AllowUpdateWhileDrawing/>) {
+              uploadImage();
+            }
+          }
+        };
+      
+        canvasElement.onmouseup = function (e) {
+          if (!isDrawing) return;
+
+          isDrawing = false;
+
+          if (!didMove) {
+            context.arc(e.offsetX/dpr, e.offsetY/dpr, size/2, 0, 2*Math.PI);
+            context.fill();
+          }
+
+          context.closePath();
+          uploadImage();
 
         };
       }
@@ -182,6 +199,6 @@ Component[OptionsPattern[]] := With[{
 }
 ]
 
-Options[Component] = {"OverlayImage"->None, ImageSize -> 350, "Handler" -> "RasterXYZ", Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
+Options[Component] = {"OverlayImage"->None, "AllowUpdateWhileDrawing"->False, ImageSize -> 350, "Handler" -> "RasterXYZ", Magnification -> 1, "Event" -> "blackhole", "Topic" -> "Default"};
 
 Component

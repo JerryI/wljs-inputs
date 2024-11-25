@@ -117,7 +117,7 @@ InputRaster[EventObject[a_Association], rest__] := InputRaster[rest, "Event" -> 
 InputRaster[EventObject[a_Association], rest_]  := InputRaster[rest, "Event" -> a["Id"] ]
 InputRaster[EventObject[a_Association] ]  := InputRaster["Event" -> a["Id"] ]
 
-Options[InputRaster] = {"Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1, "OverlayImage"->None}
+Options[InputRaster] = {"AllowUpdateWhileDrawing"->False, "Topic"->"Default", "Event":>CreateUUID[], ImageSize->350, Magnification->1, "OverlayImage"->None}
 
 Knob = ImportComponent[FileNameJoin[{$troot, "Button.wlx"}] ];
 
