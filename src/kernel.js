@@ -268,7 +268,7 @@ dataset['TypeSystem`Struct'] = async (args, env) => {
         obj[key] = values[index];
       } else {
         obj[key] = async function(data, env, element) {
-          element.classList.add('font-medium');
+          element.classList.add('font-medium', 'selectable');
           element.innerText = await interpretate(data, env);
         };
       }
@@ -304,6 +304,7 @@ atoms['TypeSystem`Enumeration'] = async (args, env) => {
 atoms['Integer'] = async (args, env) => {return (
   async function (data, env, element) {
     const value = await interpretate(data, env);
+    element.classList.add('selectable');
     element.innerText = value;
   }
 )};
@@ -313,6 +314,7 @@ atoms['Real'] = atoms['Integer']
 atoms['String'] = async (args, env) => {return (
   async function (data, env, element) {
     const value = await interpretate(data, env);
+    element.classList.add('selectable');
     element.innerText = value;
   }
 )};
@@ -337,7 +339,7 @@ atoms['DateObject'] = async (args, env) => {return (
       value[5]
     );
 
-    element.classList.add('text-xs', 'text-center', 'text-gray-800');
+    element.classList.add('text-xs', 'text-center', 'text-gray-800', 'selectable');
     const timeElement = document.createElement('div');
     timeElement.innerText = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     element.appendChild(timeElement);
