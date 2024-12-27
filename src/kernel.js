@@ -303,6 +303,7 @@ atoms['TypeSystem`Enumeration'] = async (args, env) => {
 
 atoms['Integer'] = async (args, env) => {return (
   async function (data, env, element) {
+    //console.warn(data);
     const value = await interpretate(data, env);
     element.classList.add('selectable');
     element.innerText = value;
@@ -433,7 +434,7 @@ core.Dataset = async (args, env) => {
 
   const data = await interpretate(args[0], {...env, hold:true});
   console.log(args[1]);
-  const types = await interpretate(args[1], {...env, context: dataset});
+  let types = await interpretate(args[1], {...env, context: dataset});
   
   //console.log(data);
   console.warn(types);
@@ -563,6 +564,8 @@ core.Dataset = async (args, env) => {
       }
       
     })); 
+
+    console.log(oneDimArrayQ);
     
     if (oneDimArrayQ) {
       rows = rows.map((el) => [el]);
@@ -572,21 +575,109 @@ core.Dataset = async (args, env) => {
 
       if (oneDimArrayQ) { //fixme!!!
       
-        
+        //console.error({types, headerRows});
 
-        rowTypes = (i,j, data, env, element, store) => {if (types[headerRows[i]].structure) {
-          return types[headerRows[i]].structure(data, env, element, store);
+        if (!Array.isArray(types) && headerRows.length == 1) { //fixme!
+          console.warn('Dirty fix applied for single-key items. I hate you Wolfram!');
+          const copy = types;
+          types = {};
+          types[headerRows[0]] = copy;
+        }
+
+        
+        
+        rowTypes = (i,j, data, env, element, store) => {
+         // console.warn({types, headerRows});
+         let  type = types[headerRows[i]];
+         if (!type) type = types;
+
+         if (type.structure) {
+          if (Array.isArray(data)) {
+            //throw({data, t: types[headerRows[i]]});
+            //return types[headerRows[i]].structure(data[j], env, element, store);
+            const nestedTable = document.createElement('table');
+            const nestedBody = document.createElement('tbody');
+            nestedTable.appendChild(nestedBody);
+
+            if (data.length < 5) {
+              const nestedRow = document.createElement('tr');
+
+              data.forEach((el) => {
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                type.structure(el, env, nestedCell, store);
+              });
+
+              nestedBody.appendChild(nestedRow);
+              
+            } else {
+              
+
+              data.forEach((el) => {
+                const nestedRow = document.createElement('tr');
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                nestedBody.appendChild(nestedRow);
+                type.structure(el, env, nestedCell, store);
+              });
+            }
+
+            element.appendChild(nestedTable);
+
+            return;            
+          } else {
+            return type.structure(data, env, element, store);
+          }
           //return '';
         } else {
           //return 'Fuck';
-          if (Array.isArray(types[headerRows[i]])) {
-            return types[headerRows[i]][j](data, env, element, store)
+          if (Array.isArray(type)) {
+            //console.warn({data, t: types[headerRows[i]]})
+            if (Array.isArray(data)) {
+              //throw({data, t: types[headerRows[i]]});
+              const nestedTable = document.createElement('table');
+              const nestedBody = document.createElement('tbody');
+              nestedTable.appendChild(nestedBody);
+  
+              if (data.length < 5) {
+                const nestedRow = document.createElement('tr');
+  
+                data.forEach((el) => {
+                  const nestedCell = document.createElement('td');
+                  nestedRow.appendChild(nestedCell);
+                  type[j](el, env, nestedCell, store);
+                });
+  
+                nestedBody.appendChild(nestedRow);
+                
+              } else {
+                
+  
+                data.forEach((el) => {
+                  const nestedRow = document.createElement('tr');
+                  const nestedCell = document.createElement('td');
+                  nestedRow.appendChild(nestedCell);
+                  nestedBody.appendChild(nestedRow);
+                  type[j](el, env, nestedCell, store);
+                });
+              }
+  
+              element.appendChild(nestedTable);
+  
+              return;
+            } else {
+              return type[j](data, env, element, store)
+            }
           } else {
-            if (typeof types[headerRows[i]] == 'function') {
-              return types[headerRows[i]](data, env, element, store)
-            } 
+            //console.warn(types);
+            //console.warn(headerRows);
+            //throw(types[headerRows[i]]);
+            //if (typeof types[headerRows[i]] == 'function') {
+              return type(data, env, element, store)
+            //} 
             console.warn(types);
             console.warn(headerRows);
+            console.warn(typeof types[headerRows[i]]);
             console.error('Unknown structure in data types!');
             return '';
           }
@@ -595,13 +686,54 @@ core.Dataset = async (args, env) => {
 
       } else {
 
-        rowTypes = (i,j, data, env, element, store) => {if (types[headerRows[i]].structure) {
-          return types[headerRows[i]].structure(data, env, element, store);
+        rowTypes = (i,j, data, env, element, store) => {
+          let  type = types[headerRows[i]];
+          if (!type) type = types;
+
+        if (type.structure) {
+          
+
+          if (Array.isArray(data)) {
+            const nestedTable = document.createElement('table');
+            const nestedBody = document.createElement('tbody');
+            nestedTable.appendChild(nestedBody);
+
+            if (data.length < 5) {
+              const nestedRow = document.createElement('tr');
+
+              data.forEach((el) => {
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                type.structure(el, env, nestedCell, store);
+              });
+
+              nestedBody.appendChild(nestedRow);
+              
+            } else {
+              
+
+              data.forEach((el) => {
+                const nestedRow = document.createElement('tr');
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                nestedBody.appendChild(nestedRow);
+                type.structure(el, env, nestedCell, store);
+              });
+            }
+
+            element.appendChild(nestedTable);
+
+            return;
+
+            //return types[headerRows[i]].structure(data, env, element, store);
+          } else {
+            return type.structure(data, env, element, store);
+          }
           //return '';
         } else {
           //return 'Fuck';
-          if (Array.isArray(types[headerRows[i]])) {
-            return types[headerRows[i]][j](data, env, element, store)
+          if (Array.isArray(type)) {
+            return type[j](data, env, element, store)
           } else {
             console.warn(types);
             console.warn(headerRows);
@@ -769,6 +901,7 @@ core.Dataset = async (args, env) => {
       rows[i+offset].forEach((cell, index) => {
         const td = document.createElement('td');
         td.classList.add(...("px-2 py-1 whitespace-nowrap text-sm text-gray-800".split(' ')));
+        //console.warn({pos: i+offset, index, cell});
         rowTypes(i+offset, index, cell, env, td, store);
         row.appendChild(td);      
       });   
@@ -953,13 +1086,15 @@ core.Dataset = async (args, env) => {
 
 
   table.addEventListener('scroll', () => {
-    if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
+    //console.log([table.scrollTop + table.clientHeight, table.scrollHeight]);
+    if (table.scrollTop + table.clientHeight >= table.scrollHeight - 10.0) {
       if (offset + windowSize >= pageSize) return;
       
       let size = extendSize;
       if (size + offset + windowSize >= rows.length) {
         size = rows.length - windowSize - offset;
       }
+      console.log('scroll overflow');
 
       if (size >= 0)
         viewPort.extend(rows, size);
