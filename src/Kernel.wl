@@ -22,6 +22,8 @@ InputTable::usage = ""
 InputSelect::usage = "InputSelect[{val1 -> expr1, val2 -> expr2}, defaultval] _EventObject"
 InputRadio::usage = "InputRadio[{val1 -> expr1, val2 -> expr2}, defaultval] _EventObject"
 
+InputAutocomplete::usage = "InputAutocomplete[autocompleteFunction_] _EventObject"
+
 InputGroup::usage = "groups event objects"
 
 InputJoystick::usage = "InputJoystick[] _EventObject describes a 2D controller"
@@ -79,6 +81,24 @@ InputRange[EventObject[a_Association], rest__] := InputRange[rest, "Event" -> a[
 
 Options[InputRange] = {"Label"->"", "Event":>CreateUUID[], "Topic"->"Default"}
 
+InputAutocompleteX = ImportComponent[FileNameJoin[{$troot, "Autocomplete.wlx"}] ];
+
+InputAutocomplete[autocomplete_, opts: OptionsPattern[] ] := With[{},
+	With[{uid = OptionValue["Event"], handler = Unique["System`xhxComplete"]},
+		handler[data_String][cbk_] := autocomplete[data // URLDecode, cbk];
+
+		EventObject[<|
+	     "Id"->uid, 
+	     "View"->HTMLView[ 
+	       InputAutocompleteX["Event"->uid, "HandlerSymbol"->handler, opts],
+	       Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] 
+	    ]|>]
+	]
+]
+
+InputAutocomplete[EventObject[a_Association], rest__] := InputAutocomplete[rest, "Event" -> a["Id"] ]
+
+Options[InputAutocomplete] = {"Label"->"", "Event":>CreateUUID[], "ClearOnSubmit"->True}
 
 RasterX = ImportComponent[FileNameJoin[{$troot, "Raster.wlx"}] ];
 
