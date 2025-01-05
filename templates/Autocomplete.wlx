@@ -65,7 +65,16 @@ AutocompleteComponent[OptionsPattern[]] := With[{
         el.dom.remove();
       });
 
-      const intersection = renderedArray.filter((x) => newArray.some((element) => element.domId === x.domId));
+      const intersection = [];
+      renderedArray.forEach((el) => {
+        const found = newArray.find((element) => element.domId === el.domId);
+        if (found) {
+          intersection.push(el);
+          el.value = found.value;
+          el.index = found.index;
+        }
+      });
+
       console.log(intersection);
       
       const newElements = newArray.filter((x) => !intersection.some((element) => element.domId === x.domId));
@@ -96,8 +105,8 @@ AutocompleteComponent[OptionsPattern[]] := With[{
 
       renderedArray = renderedArray.sort((a, b) => a.value - b.value);
 
-      renderedArray.forEach((el) => {
-        list.appendChild(el.dom);
+      renderedArray.toReversed().forEach((el) => {
+        list.prepend(el.dom);
       });
     }
 
