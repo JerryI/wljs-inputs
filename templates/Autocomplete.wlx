@@ -10,7 +10,7 @@ AutocompleteComponent[OptionsPattern[]] := With[{
 },
 
 <div>
-  <label class="block font-medium text-gray-900"><Label/></label>
+  <label class="ml-1 block text-gray-600 sm-controls"><Label/></label>
   <div class="relative mt-2">
     <input id="#instanceId-text" value="{Default}" type="text" class="block w-full rounded-md bg-white border-0 py-1 px-1 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-teal-600" role="combobox" aria-controls="options" aria-expanded="false"/>
     <button id="#instanceId-search" class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-hidden">
