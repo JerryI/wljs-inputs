@@ -84,13 +84,17 @@ Options[InputRange] = {"Label"->"", "Event":>CreateUUID[], "Topic"->"Default"}
 InputAutocompleteX = ImportComponent[FileNameJoin[{$troot, "Autocomplete.wlx"}] ];
 
 InputAutocomplete[autocomplete_, opts: OptionsPattern[] ] := With[{},
+	InputAutocomplete[autocomplete, "", opts]
+]
+
+InputAutocomplete[autocomplete_, default_String, opts: OptionsPattern[] ] := With[{},
 	With[{uid = OptionValue["Event"], handler = Unique["System`xhxComplete"]},
 		handler[data_String][cbk_] := autocomplete[data // URLDecode, cbk];
 
 		EventObject[<|
 	     "Id"->uid, 
 	     "View"->HTMLView[ 
-	       InputAutocompleteX["Event"->uid, "HandlerSymbol"->handler, opts],
+	       InputAutocompleteX["Event"->uid, "Default"->default, "HandlerSymbol"->handler, opts],
 	       Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] 
 	    ]|>]
 	]
