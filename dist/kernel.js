@@ -780,6 +780,9 @@ core.Dataset = async (args, env) => {
   const table = document.createElement('table');
   table.classList.add(...("block max-h-60 overflow-y-scroll sc-b pr-2 divide-y divide-gray-200".split(' ')));  
 
+  table.style.wordBreak = 'normal';
+  table.style.wordWrap = 'initial';   
+
   if (options.ImageSize) {
     if (Array.isArray(options.ImageSize)) {
         if (typeof options.ImageSize[0] === 'number') table.style.width = options.ImageSize[0] + 'px';
@@ -1112,7 +1115,7 @@ core.Missing = () => undefined;
 core.TableHeadings = () => "TableHeadings";
 
 core.HandsontableView = async (args, env) => {
-    if (!Handsontable) Handsontable = (await import('./index-08fddabc.js')).default;
+    if (!Handsontable) Handsontable = (await import('./index-26e3b46a.js')).default;
     console.log(Handsontable);
 
     let loadData = async () => 'EOF';

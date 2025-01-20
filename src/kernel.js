@@ -788,6 +788,9 @@ core.Dataset = async (args, env) => {
   const table = document.createElement('table');
   table.classList.add(...("block max-h-60 overflow-y-scroll sc-b pr-2 divide-y divide-gray-200".split(' ')));  
 
+  table.style.wordBreak = 'normal';
+  table.style.wordWrap = 'initial';   
+
   if (options.ImageSize) {
     if (Array.isArray(options.ImageSize)) {
         if (typeof options.ImageSize[0] === 'number') table.style.width = options.ImageSize[0] + 'px';

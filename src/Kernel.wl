@@ -415,46 +415,64 @@ System`ProvidedOptions;
 
 System`DatasetWrapperBox;
 
-Dataset`MakeDatasetBoxes;
 
-Unprotect[Dataset`MakeDatasetBoxes]
-ClearAll[Dataset`MakeDatasetBoxes]
+applyPatch := (
+	Dataset;
+	Dataset`MakeDatasetBoxes;
 
-Dataset`MakeDatasetBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 1024 1024, 
-	DatasetWrapperBox[data, opts, StandardForm]
-,
-	With[{o = CreateFrontEndObject[d]},
-		MakeBoxes[o, StandardForm]
-	]
-]
+	Unprotect[Dataset];
 
-Dataset /: Dataset`MakeDatasetBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 1024 1024, 
-	DatasetWrapperBox[data, opts, StandardForm]
-,
-	With[{o = CreateFrontEndObject[d]},
-		MakeBoxes[o, StandardForm]
-	]
-]
+	Unprotect[Dataset`MakeDatasetBoxes];
+	ClearAll[Dataset`MakeDatasetBoxes];
+
+	Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit 1024 1024 / 8.0, 
+		DatasetWrapperBox[d // Normal, StandardForm] (*FIXME do not use Normal*)
+	,
+		With[{o = CreateFrontEndObject[d]},
+			MakeBoxes[o, StandardForm]
+		]
+	];
+
+	Dataset /: Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit 1024 1024 / 8.0, 
+		DatasetWrapperBox[d // Normal, StandardForm] (*FIXME do not use Normal*)
+	,
+		With[{o = CreateFrontEndObject[d]},
+			MakeBoxes[o, StandardForm]
+		]
+	];
+
+	SetAttributes[Dataset`MakeDatasetBoxes, HoldFirst];
+);
+
+applyPatch;
+
+Internal`AddHandler["GetFileEvent",
+ If[MatchQ[#, HoldComplete["Dataset`",_,_] ],
+    applyPatch;
+    (* TODO: remove this handler!!! *)
+ ]&
+];
 
 Unprotect[Dataset]
 
 System`WLXForm;
 
-Dataset /: MakeBoxes[d:Dataset[data_, opts__], WLXForm ] := If[ByteCount[d] > 0.5 1024 1024, 
-	DatasetWrapperBox[data, opts, WLXForm]
+Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[d // Normal, WLXForm] (*FIXME do not use Normal*)
 ,
 	With[{o = CreateFrontEndObject[d]},
 		MakeBoxes[o, WLXForm]
 	]
-]
+];
 
-Dataset`MakeDatasetWLXBoxes[d:Dataset[data_, opts__] ] := If[ByteCount[d] > 0.5 1024 1024, 
-	DatasetWrapperBox[data, opts, WLXForm]
+Dataset`MakeDatasetWLXBoxes[d_Dataset ] := If[ByteCount[d] > 0.5 1024 1024, 
+	DatasetWrapperBox[d // Normal, WLXForm] (*FIXME do not use Normal*)
 ,
 	With[{o = CreateFrontEndObject[d]},
 		MakeBoxes[o, WLXForm]
 	]
-]
+];
+
 
 
 splitDataset[test_, threshold_:0.5] := With[{
@@ -477,7 +495,7 @@ splitDataset[test_, threshold_:0.5] := With[{
 
 garbage = {};
 
-DatasetWrapperBox[ l: List[__List], opts__, form_ ] := With[{
+DatasetWrapperBox[ l: List[__List], form_ ] := With[{
 	parts = splitDataset[l],
 	req = Unique["tableRequest"],
 	event = CreateUUID[]
@@ -485,8 +503,7 @@ DatasetWrapperBox[ l: List[__List], opts__, form_ ] := With[{
 
 	LeakyModule[{store},
 		With[{
-				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
-				options = ToString[#, InputForm] &/@ List[opts]
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ]
 			},
 
 				EventHandler[event, Function[part,
@@ -503,7 +520,7 @@ DatasetWrapperBox[ l: List[__List], opts__, form_ ] := With[{
 	]
 ]
 
-DatasetWrapperBox[ l: List[__List], opts__, StandardForm] := With[{
+DatasetWrapperBox[ l: List[__List], StandardForm] := With[{
 	parts = splitDataset[l],
 	req = Unique["tableRequest"],
 	event = CreateUUID[]
@@ -516,10 +533,9 @@ DatasetWrapperBox[ l: List[__List], opts__, StandardForm] := With[{
 		] ];
 
 		With[{
-				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
-				options = ToString[#, InputForm] &/@ List[opts]
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ]
 			},
-			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], "])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
 				AppendTo[garbage, Hold[store ] ];
 				store = parts;
 				view
@@ -528,7 +544,7 @@ DatasetWrapperBox[ l: List[__List], opts__, StandardForm] := With[{
 	]
 ]
 
-DatasetWrapperBox[ l_List , opts__, form_ ] := With[{
+DatasetWrapperBox[ l_List , form_ ] := With[{
 	parts = splitDataset[l],
 	req = Unique["tableRequest"],
 	event = CreateUUID[]
@@ -541,8 +557,7 @@ DatasetWrapperBox[ l_List , opts__, form_ ] := With[{
 		] ];
 
 		With[{
-				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
-				options = ToString[#, InputForm] &/@ List[opts]
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ]
 			},
 				With[{view = MakeBoxes[o, form]},
 					AppendTo[garbage, Hold[store ] ];
@@ -553,7 +568,7 @@ DatasetWrapperBox[ l_List , opts__, form_ ] := With[{
 	]
 ]
 
-DatasetWrapperBox[ l_List , opts__, StandardForm] := With[{
+DatasetWrapperBox[ l_List , StandardForm] := With[{
 	parts = splitDataset[l],
 	req = Unique["tableRequest"],
 	event = CreateUUID[]
@@ -566,10 +581,9 @@ DatasetWrapperBox[ l_List , opts__, StandardForm] := With[{
 		] ];
 
 		With[{
-				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
-				options = ToString[#, InputForm] &/@ List[opts]
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ]
 			},
-			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
 				AppendTo[garbage, Hold[store ] ];
 				store = parts;
 				view
@@ -578,19 +592,19 @@ DatasetWrapperBox[ l_List , opts__, StandardForm] := With[{
 	]
 ]
 
-DatasetWrapperBox[ a: Association[r: Rule[_, _List]..] , opts__, form_ ] := With[{d = Dataset[a]},
+DatasetWrapperBox[ a: Association[r: Rule[_, _List]..] , form_ ] := With[{d = Dataset[a]},
 	With[{o = CreateFrontEndObject[d]},
 		MakeBoxes[o, form]
 	]
 ];
 
-DatasetWrapperBox[ a: Association[r: Rule[_, _Association]..] , opts__, form_ ] := With[{d = Dataset[a]},
+DatasetWrapperBox[ a: Association[r: Rule[_, _Association]..] , form_ ] := With[{d = Dataset[a]},
 	With[{o = CreateFrontEndObject[d]},
 		MakeBoxes[o, form]
 	]
 ];
 
-DatasetWrapperBox[ l : List[__Association] , opts__, form_] := With[{
+DatasetWrapperBox[ l : List[__Association] , form_] := With[{
 	parts = splitDataset[l],
 	req = Unique["tableRequest"],
 	event = CreateUUID[]
@@ -603,8 +617,7 @@ DatasetWrapperBox[ l : List[__Association] , opts__, form_] := With[{
 		] ];
 
 		With[{
-				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ],
-				options = ToString[#, InputForm] &/@ List[opts]
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm], "Total"->Length[l], "Parts"->Length[parts] ] ]
 			},
 				With[{view = MakeBoxes[o, form]},
 					AppendTo[garbage, Hold[store ] ];
@@ -615,7 +628,7 @@ DatasetWrapperBox[ l : List[__Association] , opts__, form_] := With[{
 	]
 ]
 
-DatasetWrapperBox[ l : List[__Association] , opts__, StandardForm] := With[{
+DatasetWrapperBox[ l : List[__Association] ,  StandardForm] := With[{
 	parts = splitDataset[l],
 	req = Unique["tableRequest"],
 	event = CreateUUID[]
@@ -628,10 +641,9 @@ DatasetWrapperBox[ l : List[__Association] , opts__, StandardForm] := With[{
 		] ];
 
 		With[{
-				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm],  "Total"->Length[l], "Parts"->Length[parts] ] ],
-				options = ToString[#, InputForm] &/@ List[opts]
+				o = CreateFrontEndObject[ProvidedOptions[parts // First // Dataset, "RequestEvent" -> event, "RequestCallback" -> ToString[req, InputForm],  "Total"->Length[l], "Parts"->Length[parts] ] ]
 			},
-			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm], ",", StringRiffle[options, ","],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
+			With[{view = RowBox[{"(*VB[*)(Dataset[Join@@", ToString[store, InputForm],"])(*,*)(*", ToString[Compress[Hold[o] ], InputForm], "*)(*]VB*)"}]},
 				AppendTo[garbage, Hold[store ] ];
 				store = parts;
 				view
