@@ -1,4 +1,95 @@
-import { deflate } from 'pako';
+
+
+function templateEngine(template, data) {
+  return template.replace(/#(\w+)/g, (match, p1) => {
+    return data[p1] !== undefined ? data[p1] : match;
+  });
+}
+
+core.CreateUUID = async () => {
+  return uuidv4();
+}
+
+core['HTMLView`TemplateProcessor'] = async (args, env) => {
+  const obj = await interpretate(args[0], env);
+  env.htmlString = templateEngine(env.htmlString, obj);
+}
+
+core['HTMLView`InlineJSModule'] = async (args, env) => {
+  let str = await interpretate(args[0], env);
+
+  if (str.includes('<script>')) {
+    str = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  }
+
+  const newScript = document.createElement("script");
+  newScript.appendChild(document.createTextNode('{\n'+str+'\n}'));
+
+  env.element.appendChild(newScript);
+}
+
+core.HTMLView = async (args, env) => {
+  
+  let html = await interpretate(args[0], env);
+  //env.uiInstanceId = uuidv4();
+  const options = await core._getRules(args, {...env, hold:true});
+
+  if (Array.isArray(html)) html = html.join('\n');
+
+  env.htmlString = html;
+
+
+  
+
+  if ('Prolog' in options) {
+    await interpretate(options.Prolog, env);
+  }
+
+  //html = replaceContextPlaceholders(html, {env: env});
+
+  const element = await setInnerHTMLAsync(env.element, env.htmlString);
+
+  if ('Epilog' in options) {
+    console.log('Epilog');
+    await interpretate(options.Epilog, {...env, element: element});
+  }
+}   
+
+
+core.Prolog = () => "Prolog"
+core.Epilog = () => "Epilog"
+
+core["Notebook`Kernel`Inputs`Private`HandleGroup"] = async (args, env) => {
+  const data = await interpretate(args[0], {...env, hold:true});
+
+  const doc = env.element.querySelectorAll('[data-type="group"]')[0];
+  for (const fe of data) {
+      const el = document.createElement('div');
+      doc.appendChild(el);
+      await interpretate(fe, {...env, element: el});
+  }
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"] = async (args, env) => {
+  const data = await interpretate(args[0], env);
+  const name = await interpretate(args[1], env);
+  const field = await interpretate(args[2], env);
+
+  env.local.element = env.element.querySelectorAll(`[data-type="${name}"]`)[0];
+  env.local.field   = field;
+  env.local.element[field] = data;
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].update = async (args, env) => {
+  const data = await interpretate(args[0], env);
+  env.local.element[env.local.field] = data;
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].destroy = () => {
+  console.log('InternalElementUpdate destroyed!');
+}
+
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].virtual = true;
 
 core.InternalWLXDestructor = async (args, env) => {
     const uid = await interpretate(args[0], env);
@@ -171,10 +262,18 @@ dataset['TypeSystem`Struct'] = async (args, env) => {
   keys.forEach((key, index) => {
     if (Array.isArray(values[index])) {
       //list of options
-      obj[key] = async function(data, env, element) {
-        element.classList.add('font-medium');
-        element.innerText = await interpretate(data, env);
-      };
+      console.warn('KEY');
+      console.warn(values[index]);
+      if (typeof values[index][0] === 'object' || typeof values[index][0] === 'function') {
+        obj[key] = values[index];
+      } else {
+        obj[key] = async function(data, env, element) {
+          element.classList.add('font-medium', 'selectable');
+          element.innerText = await interpretate(data, env);
+        };
+      }
+      /**/
+      
     } else {
       //if this is a function - easy
       obj[key] = values[index];
@@ -204,7 +303,9 @@ atoms['TypeSystem`Enumeration'] = async (args, env) => {
 
 atoms['Integer'] = async (args, env) => {return (
   async function (data, env, element) {
+    //console.warn(data);
     const value = await interpretate(data, env);
+    element.classList.add('selectable');
     element.innerText = value;
   }
 )};
@@ -214,6 +315,7 @@ atoms['Real'] = atoms['Integer']
 atoms['String'] = async (args, env) => {return (
   async function (data, env, element) {
     const value = await interpretate(data, env);
+    element.classList.add('selectable');
     element.innerText = value;
   }
 )};
@@ -238,7 +340,7 @@ atoms['DateObject'] = async (args, env) => {return (
       value[5]
     );
 
-    element.classList.add('text-xs', 'text-center', 'text-gray-800');
+    element.classList.add('text-xs', 'text-center', 'text-gray-800', 'selectable');
     const timeElement = document.createElement('div');
     timeElement.innerText = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     element.appendChild(timeElement);
@@ -263,7 +365,7 @@ atoms['Graphics'] = () => {return (
       
     const copy = env;
     
-    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, data);
+    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, data, true);
     instance.assignScope(copy);
       
     instance.execute();
@@ -314,7 +416,7 @@ dataset['TypeSystem`AnyType'] = () => {return (
       
     const copy = env;
     const storage = await obj.get();
-    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, storage);
+    const instance = new ExecutableObject('dataset-stored-'+uuidv4(), copy, storage, true);
     instance.assignScope(copy);
     obj.assign(instance);
       
@@ -331,8 +433,8 @@ core.Dataset = async (args, env) => {
   console.log(env.options);
 
   const data = await interpretate(args[0], {...env, hold:true});
-  //console.log(args[1]);
-  const types = await interpretate(args[1], {...env, context: dataset});
+  console.log(args[1]);
+  let types = await interpretate(args[1], {...env, context: dataset});
   
   //console.log(data);
   console.warn(types);
@@ -450,21 +552,224 @@ core.Dataset = async (args, env) => {
     }
   } else {
     headerRows = Object.keys(data);
-    rows = await Promise.all(headerRows.map(async (row) => await interpretate(data[row], {...env, hold:true})));    
+    console.error(data);
+    let oneDimArrayQ = false;
+    rows = await Promise.all(headerRows.map(async (row) => {
+      if (data[row][0] != 'Association' && data[row][0] != 'List') {
+        console.log(data[row]);
+        oneDimArrayQ = true;
+        return data[row]; //probably 1D array
+      } else {
+        return await interpretate(data[row], {...env, hold:true})
+      }
+      
+    })); 
+
+    console.log(oneDimArrayQ);
+    
+    if (oneDimArrayQ) {
+      rows = rows.map((el) => [el]);
+    }
 
     if (Array.isArray(rows[0])) {
+
+      if (oneDimArrayQ) { //fixme!!!
       
-      rowTypes = (i,j, data, env, element, store) => types[headerRows[i]].structure(data, env, element, store);
+        //console.error({types, headerRows});
+
+        if (!Array.isArray(types) && headerRows.length == 1) { //fixme!
+          console.warn('Dirty fix applied for single-key items. I hate you Wolfram!');
+          const copy = types;
+          types = {};
+          types[headerRows[0]] = copy;
+        }
+
+        
+        
+        rowTypes = (i,j, data, env, element, store) => {
+         // console.warn({types, headerRows});
+         let  type = types[headerRows[i]];
+         if (!type) type = types;
+
+         if (type.structure) {
+          if (Array.isArray(data)) {
+            //throw({data, t: types[headerRows[i]]});
+            //return types[headerRows[i]].structure(data[j], env, element, store);
+            const nestedTable = document.createElement('table');
+            const nestedBody = document.createElement('tbody');
+            nestedTable.appendChild(nestedBody);
+
+            if (data.length < 5) {
+              const nestedRow = document.createElement('tr');
+
+              data.forEach((el) => {
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                type.structure(el, env, nestedCell, store);
+              });
+
+              nestedBody.appendChild(nestedRow);
+              
+            } else {
+              
+
+              data.forEach((el) => {
+                const nestedRow = document.createElement('tr');
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                nestedBody.appendChild(nestedRow);
+                type.structure(el, env, nestedCell, store);
+              });
+            }
+
+            element.appendChild(nestedTable);
+
+            return;            
+          } else {
+            return type.structure(data, env, element, store);
+          }
+          //return '';
+        } else {
+          //return 'Fuck';
+          if (Array.isArray(type)) {
+            //console.warn({data, t: types[headerRows[i]]})
+            if (Array.isArray(data)) {
+              //throw({data, t: types[headerRows[i]]});
+              const nestedTable = document.createElement('table');
+              const nestedBody = document.createElement('tbody');
+              nestedTable.appendChild(nestedBody);
+  
+              if (data.length < 5) {
+                const nestedRow = document.createElement('tr');
+  
+                data.forEach((el) => {
+                  const nestedCell = document.createElement('td');
+                  nestedRow.appendChild(nestedCell);
+                  type[j](el, env, nestedCell, store);
+                });
+  
+                nestedBody.appendChild(nestedRow);
+                
+              } else {
+                
+  
+                data.forEach((el) => {
+                  const nestedRow = document.createElement('tr');
+                  const nestedCell = document.createElement('td');
+                  nestedRow.appendChild(nestedCell);
+                  nestedBody.appendChild(nestedRow);
+                  type[j](el, env, nestedCell, store);
+                });
+              }
+  
+              element.appendChild(nestedTable);
+  
+              return;
+            } else {
+              return type[j](data, env, element, store)
+            }
+          } else {
+            //console.warn(types);
+            //console.warn(headerRows);
+            //throw(types[headerRows[i]]);
+            //if (typeof types[headerRows[i]] == 'function') {
+              return type(data, env, element, store)
+            //} 
+            console.warn(types);
+            console.warn(headerRows);
+            console.warn(typeof types[headerRows[i]]);
+            console.error('Unknown structure in data types!');
+            return '';
+          }
+
+        }};
+
+      } else {
+
+        rowTypes = (i,j, data, env, element, store) => {
+          let  type = types[headerRows[i]];
+          if (!type) type = types;
+
+        if (type.structure) {
+          
+
+          if (Array.isArray(data)) {
+            const nestedTable = document.createElement('table');
+            const nestedBody = document.createElement('tbody');
+            nestedTable.appendChild(nestedBody);
+
+            if (data.length < 5) {
+              const nestedRow = document.createElement('tr');
+
+              data.forEach((el) => {
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                type.structure(el, env, nestedCell, store);
+              });
+
+              nestedBody.appendChild(nestedRow);
+              
+            } else {
+              
+
+              data.forEach((el) => {
+                const nestedRow = document.createElement('tr');
+                const nestedCell = document.createElement('td');
+                nestedRow.appendChild(nestedCell);
+                nestedBody.appendChild(nestedRow);
+                type.structure(el, env, nestedCell, store);
+              });
+            }
+
+            element.appendChild(nestedTable);
+
+            return;
+
+            //return types[headerRows[i]].structure(data, env, element, store);
+          } else {
+            return type.structure(data, env, element, store);
+          }
+          //return '';
+        } else {
+          //return 'Fuck';
+          if (Array.isArray(type)) {
+            return type[j](data, env, element, store)
+          } else {
+            console.warn(types);
+            console.warn(headerRows);
+            console.error('Unknown structure in data types!');
+            return '';
+          }
+
+        }};        
+      }
+
       rows = await Promise.all(rows.map(async (row) => {
         return Promise.all(row.map(async (cell) => cell));
       }));
     } else {
       headerCols = Object.keys(rows[0]);
 
+      if (oneDimArrayQ) {
+        console.log('1D');
+        /*if (!headerCols.length) {
+          headerCols = Object.keys(types);
+        }
+        rows = rows.map((el, index) => {
+          const virtual = {};
+          virtual[headerCols[index]] = el;
+          return virtual;
+        });*/
+      }
+
+      console.warn(headerCols);
+      console.warn(types);
       rowTypes = (i,j, data, env, element, store) => types[headerCols[j]](data, env, element, store);
       rows = await Promise.all(rows.map(async (row) => {
         return Promise.all(headerCols.map(async (col) => row[col]));
       }));
+
+      console.log(rows);
     }
   }
 
@@ -482,6 +787,9 @@ core.Dataset = async (args, env) => {
 
   const table = document.createElement('table');
   table.classList.add(...("block max-h-60 overflow-y-scroll sc-b pr-2 divide-y divide-gray-200".split(' ')));  
+
+  table.style.wordBreak = 'normal';
+  table.style.wordWrap = 'initial';   
 
   if (options.ImageSize) {
     if (Array.isArray(options.ImageSize)) {
@@ -596,6 +904,7 @@ core.Dataset = async (args, env) => {
       rows[i+offset].forEach((cell, index) => {
         const td = document.createElement('td');
         td.classList.add(...("px-2 py-1 whitespace-nowrap text-sm text-gray-800".split(' ')));
+        //console.warn({pos: i+offset, index, cell});
         rowTypes(i+offset, index, cell, env, td, store);
         row.appendChild(td);      
       });   
@@ -780,13 +1089,15 @@ core.Dataset = async (args, env) => {
 
 
   table.addEventListener('scroll', () => {
-    if (table.scrollTop + table.clientHeight >= table.scrollHeight) {
+    //console.log([table.scrollTop + table.clientHeight, table.scrollHeight]);
+    if (table.scrollTop + table.clientHeight >= table.scrollHeight - 10.0) {
       if (offset + windowSize >= pageSize) return;
       
       let size = extendSize;
       if (size + offset + windowSize >= rows.length) {
         size = rows.length - windowSize - offset;
       }
+      console.log('scroll overflow');
 
       if (size >= 0)
         viewPort.extend(rows, size);
@@ -806,6 +1117,8 @@ core.Dataset.destroy = (args, env) => {
     el.garbageCollect();
   });
 }
+
+core.Dataset.virtual = true
 
 core.Missing = () => undefined
 
@@ -1024,7 +1337,7 @@ core.HandsontableView.destroy = (args, env) => {
 }
 
 
-core.EventListener = async (args, env) => {
+/*core.EventListener = async (args, env) => {
     const rules = await interpretate(args[1], env);
     const copy = {...env};
 
@@ -1078,4 +1391,4 @@ core.EventListener.capturekeydown = (uid, o, env) => {
     listeners[uid].push({f: logKey, element: el});
 
     el.addEventListener("keydown", logKey);
-}
+}*/

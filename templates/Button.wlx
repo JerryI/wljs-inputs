@@ -7,12 +7,12 @@ Component[OptionsPattern[]] := With[{
     Style = OptionValue["Style"]
 },
     {
-        <button type="button" style="{Style}" id="{Uid}" class="sm-controls rounded bg-white px-2 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 {Class}">
+        <button type="button" style="{Style}" id="#instanceId" class="sm-controls rounded bg-white px-2 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 {Class}">
             <Label/>
         </button>
     ,
         <script type="module">
-            const el = document.getElementById('<Uid/>');
+            const el = document.getElementById('#instanceId');
             el.addEventListener('click', (event)=>{
                 server.kernel.emitt('<Event/>', 'True', '<Topic/>');     
             });

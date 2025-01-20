@@ -1,11 +1,11 @@
 {
   "name": "wljs-inputs",
-  "version": "0.2.6",
+  "version": "0.3.9",
   "description": "sliders and other inputs for WLJS",
   "scripts": {
     "build": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs",
     "watch": "node --max-old-space-size=8192 ./node_modules/.bin/rollup --config rollup.config.mjs -w",
-    "restore": "mkdir _temp && cd _temp && git clone https://github.com/JerryI/wljs-inputs && mv wljs-inputs/.git ../.git && cd .. && rm -rf _temp"
+    "restore": "mkdir _temp && cd _temp && git clone --branch dev https://github.com/JerryI/wljs-inputs && mv wljs-inputs/.git ../.git && cd .. && rm -rf _temp"
   },
   "defaultPackage": true,
   "wljs-meta": {
@@ -17,7 +17,8 @@
     "js": "dist/kernel.js",
     "kernel": "src/Kernel.wl",
     "category": "User's GUI",
-    "priority": 550
+    "priority": 550,
+    "cellExportRequired": true
   },
   "repository": {
     "type": "git",

@@ -7,7 +7,7 @@ Component[OptionsPattern[]] := With[{UId = CreateUUID[], Event = OptionValue["Ev
        border: 1px solid #999;
        box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
        ">
-       <div id="{UId}" class="relative mt-auto mb-auto flex h-6 w-6 flex-none items-center justify-center">
+       <div id="#instanceId" class="relative mt-auto mb-auto flex h-6 w-6 flex-none items-center justify-center">
           <div  class="h-3 w-3 z-inf rounded-full hover:bg-sky-100 bg-gray-100 ring-1 ring-gray-300"></div>
           <div class="mt-auto mb-auto absolute top-0 bottom-0 flex w-6 justify-center" style="
              height: 5rem;
@@ -25,7 +25,7 @@ Component[OptionsPattern[]] := With[{UId = CreateUUID[], Event = OptionValue["Ev
           </div>
        </div>
        <script type="module">
-            const doc = document.getElementById('<UId/>');
+            const doc = document.getElementById('#instanceId');
 
             const self = {};
 

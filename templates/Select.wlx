@@ -18,14 +18,14 @@ With[{
 },
   {
     <div>
-      <label for="{UId}" class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
-      <select id="{UId}" class="mt-1 block rounded-md border-0 py-1 px-1 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-teal-600 text-sm leading-6">
+      <label for="#instanceId" class="block text-sm font-medium leading-6 text-gray-900"><Label/></label>
+      <select id="#instanceId" class="mt-1 block rounded-md border-0 py-1 px-1 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-teal-600 text-sm leading-6">
         <Opts/>
       </select>
     </div>
   ,
     <script type="module">
-        document.getElementById('<UId/>').addEventListener('change', function () {
+        document.getElementById('#instanceId').addEventListener('change', function () {
             console.log(['<Event/>', '"'+this.value+'"', '<Topic/>']);
             server.kernel.emitt('<Event/>', '"'+this.value+'"', '<Topic/>');
         })    
