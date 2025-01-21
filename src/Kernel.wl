@@ -652,7 +652,9 @@ DatasetWrapperBox[ l : List[__Association] ,  StandardForm] := With[{
 	]
 ]
 
-Notebook`Kernel`Inputs`DatasetMakeBox[expr_, uid_String] := CreateFrontEndObject[EditorView[ToString[expr, StandardForm], "ReadOnly"->True], uid]
+
+Notebook`Kernel`Inputs`DatasetMakeBox[expr_String, uid_String] := CreateFrontEndObject[EditorView[ToString[ImportString[ToString[expr // URLDecode, OutputForm, CharacterEncoding -> "UTF8"], "ExpressionJSON"], StandardForm], "ReadOnly"->True, "Selectable"->False], uid]
+
 
 HandsontableView /: MakeBoxes[v_HandsontableView, StandardForm] := With[{o = CreateFrontEndObject[v]}, MakeBoxes[o, StandardForm] ]
 

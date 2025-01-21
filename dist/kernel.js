@@ -385,13 +385,10 @@ dataset['TypeSystem`AnyType'] = () => {return (
 
     if (!(hash in ObjectHashMap)) {
       console.warn('Creating FE object by id '+hash);
-      const command = [
-        'Notebook`Kernel`Inputs`DatasetMakeBox',
-        data,
-        '"'+hash+'"'
-      ];
 
-      server.kernel.send(`ImportString["${encodeURIComponent(JSON.stringify(command))}"//URLDecode, "ExpressionJSON"]`);
+      server.kernel.send('Notebook`Kernel`Inputs`DatasetMakeBox["'+encodeURIComponent(JSON.stringify(data))+'", "' + hash + '"]');
+
+      //server.kernel.send(`ImportString["${encodeURIComponent(JSON.stringify(command))}"//URLDecode, "ExpressionJSON"]`);
     }
 
     let env = {global: {}, element: element}; 
