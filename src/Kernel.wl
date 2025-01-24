@@ -425,7 +425,7 @@ applyPatch := (
 	Unprotect[Dataset`MakeDatasetBoxes];
 	ClearAll[Dataset`MakeDatasetBoxes];
 
-	Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit 1024 1024 / 8.0, 
+	Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 		DatasetWrapperBox[d // Normal, StandardForm] (*FIXME do not use Normal*)
 	,
 		With[{o = CreateFrontEndObject[d]},
@@ -433,7 +433,7 @@ applyPatch := (
 		]
 	];
 
-	Dataset /: Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit 1024 1024 / 8.0, 
+	Dataset /: Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 		DatasetWrapperBox[d // Normal, StandardForm] (*FIXME do not use Normal*)
 	,
 		With[{o = CreateFrontEndObject[d]},
@@ -457,7 +457,7 @@ Unprotect[Dataset]
 
 System`WLXForm;
 
-Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > 0.5 1024 1024, 
+Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 	DatasetWrapperBox[d // Normal, WLXForm] (*FIXME do not use Normal*)
 ,
 	With[{o = CreateFrontEndObject[d]},
@@ -465,7 +465,7 @@ Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > 0.5 1024 1024,
 	]
 ];
 
-Dataset`MakeDatasetWLXBoxes[d_Dataset ] := If[ByteCount[d] > 0.5 1024 1024, 
+Dataset`MakeDatasetWLXBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 	DatasetWrapperBox[d // Normal, WLXForm] (*FIXME do not use Normal*)
 ,
 	With[{o = CreateFrontEndObject[d]},
