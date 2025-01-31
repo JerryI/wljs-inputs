@@ -57,7 +57,7 @@ core.HTMLView = async (args, env) => {
 core.Prolog = () => "Prolog";
 core.Epilog = () => "Epilog";
 
-core["Notebook`Kernel`Inputs`Private`HandleGroup"] = async (args, env) => {
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`HandleGroup"] = async (args, env) => {
   const data = await interpretate(args[0], {...env, hold:true});
 
   const doc = env.element.querySelectorAll('[data-type="group"]')[0];
@@ -68,7 +68,7 @@ core["Notebook`Kernel`Inputs`Private`HandleGroup"] = async (args, env) => {
   }
 };
 
-core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"] = async (args, env) => {
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"] = async (args, env) => {
   const data = await interpretate(args[0], env);
   const name = await interpretate(args[1], env);
   const field = await interpretate(args[2], env);
@@ -78,16 +78,16 @@ core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"] = async (args, env)
   env.local.element[field] = data;
 };
 
-core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].update = async (args, env) => {
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"].update = async (args, env) => {
   const data = await interpretate(args[0], env);
   env.local.element[env.local.field] = data;
 };
 
-core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].destroy = () => {
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"].destroy = () => {
   console.log('InternalElementUpdate destroyed!');
 };
 
-core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"].virtual = true;
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"].virtual = true;
 
 core.InternalWLXDestructor = async (args, env) => {
     const uid = await interpretate(args[0], env);
@@ -385,13 +385,10 @@ dataset['TypeSystem`AnyType'] = () => {return (
 
     if (!(hash in ObjectHashMap)) {
       console.warn('Creating FE object by id '+hash);
-      const command = [
-        'Notebook`Kernel`Inputs`DatasetMakeBox',
-        data,
-        '"'+hash+'"'
-      ];
 
-      server.kernel.send(`ImportString["${encodeURIComponent(JSON.stringify(command))}"//URLDecode, "ExpressionJSON"]`);
+      server.kernel.send('CoffeeLiqueur`Extensions`InputsOutputs`DatasetMakeBox["'+encodeURIComponent(JSON.stringify(data))+'", "' + hash + '"]');
+
+      //server.kernel.send(`ImportString["${encodeURIComponent(JSON.stringify(command))}"//URLDecode, "ExpressionJSON"]`);
     }
 
     let env = {global: {}, element: element}; 

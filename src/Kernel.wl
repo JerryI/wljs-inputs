@@ -1,13 +1,13 @@
-BeginPackage["Notebook`Kernel`Inputs`", {
+BeginPackage["CoffeeLiqueur`Extensions`InputsOutputs`", {
 	"JerryI`Misc`Events`",
 	"JerryI`Misc`Events`Promise`",
 	"JerryI`WLX`",
     "JerryI`WLX`Importer`",
 	"JerryI`Misc`WLJS`Transport`",
 	"JerryI`Misc`Language`",
-	"Notebook`EditorUtils`",
-	"Notebook`Editor`FrontendObject`",
-	"Notebook`Editor`Kernel`FrontSubmitService`"
+	"CoffeeLiqueur`Extensions`EditorView`",
+	"CoffeeLiqueur`Extensions`FrontendObject`",
+	"CoffeeLiqueur`Extensions`Communication`"
 }]
 
 InputRange::usage = "InputRange[min, max, step:1, initial:(max+min)/2, \"Label\"->\"\", \"Topic\"->\"Default\"] _EventObject."
@@ -425,7 +425,7 @@ applyPatch := (
 	Unprotect[Dataset`MakeDatasetBoxes];
 	ClearAll[Dataset`MakeDatasetBoxes];
 
-	Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit 1024 1024 / 8.0, 
+	Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 		DatasetWrapperBox[d // Normal, StandardForm] (*FIXME do not use Normal*)
 	,
 		With[{o = CreateFrontEndObject[d]},
@@ -433,7 +433,7 @@ applyPatch := (
 		]
 	];
 
-	Dataset /: Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit 1024 1024 / 8.0, 
+	Dataset /: Dataset`MakeDatasetBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 		DatasetWrapperBox[d // Normal, StandardForm] (*FIXME do not use Normal*)
 	,
 		With[{o = CreateFrontEndObject[d]},
@@ -457,7 +457,7 @@ Unprotect[Dataset]
 
 System`WLXForm;
 
-Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > 0.5 1024 1024, 
+Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 	DatasetWrapperBox[d // Normal, WLXForm] (*FIXME do not use Normal*)
 ,
 	With[{o = CreateFrontEndObject[d]},
@@ -465,7 +465,7 @@ Dataset /: MakeBoxes[d_Dataset, WLXForm ] := If[ByteCount[d] > 0.5 1024 1024,
 	]
 ];
 
-Dataset`MakeDatasetWLXBoxes[d_Dataset ] := If[ByteCount[d] > 0.5 1024 1024, 
+Dataset`MakeDatasetWLXBoxes[d_Dataset ] := If[ByteCount[d] > Internal`Kernel`$FrontEndObjectSizeLimit*1024*1024/10.0, 
 	DatasetWrapperBox[d // Normal, WLXForm] (*FIXME do not use Normal*)
 ,
 	With[{o = CreateFrontEndObject[d]},
@@ -652,7 +652,9 @@ DatasetWrapperBox[ l : List[__Association] ,  StandardForm] := With[{
 	]
 ]
 
-Notebook`Kernel`Inputs`DatasetMakeBox[expr_, uid_String] := CreateFrontEndObject[EditorView[ToString[expr, StandardForm], "ReadOnly"->True], uid]
+
+CoffeeLiqueur`Extensions`InputsOutputs`DatasetMakeBox[expr_String, uid_String] := CreateFrontEndObject[EditorView[ToString[ImportString[ToString[expr // URLDecode, OutputForm, CharacterEncoding -> "UTF8"], "ExpressionJSON"], StandardForm], "ReadOnly"->True, "Selectable"->False], uid]
+
 
 HandsontableView /: MakeBoxes[v_HandsontableView, StandardForm] := With[{o = CreateFrontEndObject[v]}, MakeBoxes[o, StandardForm] ]
 
