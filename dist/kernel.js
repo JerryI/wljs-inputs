@@ -8,10 +8,13 @@ core.CreateUUID = async () => {
   return uuidv4();
 };
 
+//legacy
 core['HTMLView`TemplateProcessor'] = async (args, env) => {
   const obj = await interpretate(args[0], env);
   env.htmlString = templateEngine(env.htmlString, obj);
 };
+
+core['CoffeeLiqueur`Extensions`InputsOutputs`Tools`TemplateProcessor'] = core['HTMLView`TemplateProcessor'];
 
 core['HTMLView`InlineJSModule'] = async (args, env) => {
   let str = await interpretate(args[0], env);
@@ -25,6 +28,9 @@ core['HTMLView`InlineJSModule'] = async (args, env) => {
 
   env.element.appendChild(newScript);
 };
+
+core['CoffeeLiqueur`Extensions`InputsOutputs`Tools`InlineJSModule'] = core['HTMLView`InlineJSModule'];
+core['CoffeeLiqueur`Extensions`InputsOutputs`Tools`AnonymousJavascript'] = core['HTMLView`InlineJSModule'];
 
 core.HTMLView = async (args, env) => {
   
@@ -57,6 +63,8 @@ core.HTMLView = async (args, env) => {
 core.Prolog = () => "Prolog";
 core.Epilog = () => "Epilog";
 
+
+
 core["CoffeeLiqueur`Extensions`InputsOutputs`Private`HandleGroup"] = async (args, env) => {
   const data = await interpretate(args[0], {...env, hold:true});
 
@@ -67,6 +75,9 @@ core["CoffeeLiqueur`Extensions`InputsOutputs`Private`HandleGroup"] = async (args
       await interpretate(fe, {...env, element: el});
   }
 };
+
+//legacy
+core["Notebook`Kernel`Inputs`Private`HandleGroup"] = core["CoffeeLiqueur`Extensions`InputsOutputs`Private`HandleGroup"];
 
 core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"] = async (args, env) => {
   const data = await interpretate(args[0], env);
@@ -89,6 +100,9 @@ core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"].des
 
 core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"].virtual = true;
 
+//legacy
+core["Notebook`Kernel`Inputs`Private`InternalElementUpdate"] = core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalElementUpdate"]; 
+
 core.InternalWLXDestructor = async (args, env) => {
     const uid = await interpretate(args[0], env);
     env.local.uid = uid;
@@ -104,6 +118,11 @@ core.InternalWLXDestructor.destroy = async (args, env) => {
 
 core.InternalWLXDestructor.virtual = true;
 
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`InternalWLXDestructor"] = core.InternalWLXDestructor;
+
+
+
+//legacy
 core.InternalHandleGroup = async (args, env) => {
     const uid = await interpretate(args[0], env);
     const data = await interpretate(args[1], {...env, hold:true});
@@ -386,7 +405,7 @@ dataset['TypeSystem`AnyType'] = () => {return (
     if (!(hash in ObjectHashMap)) {
       console.warn('Creating FE object by id '+hash);
 
-      server.kernel.send('CoffeeLiqueur`Extensions`InputsOutputs`DatasetMakeBox["'+encodeURIComponent(JSON.stringify(data))+'", "' + hash + '"]');
+      server.kernel.send('CoffeeLiqueur`Extensions`InputsOutputs`Private`DatasetMakeBox["'+encodeURIComponent(JSON.stringify(data))+'", "' + hash + '"]');
 
       //server.kernel.send(`ImportString["${encodeURIComponent(JSON.stringify(command))}"//URLDecode, "ExpressionJSON"]`);
     }
@@ -1317,6 +1336,8 @@ core.HandsontableView.destroy = (args, env) => {
     console.warn('HandsontableView was destoryed');
     if (env.local.hot) env.local.hot.destroy();
 };
+
+core["CoffeeLiqueur`Extensions`InputsOutputs`Private`HandsontableView"] = core.HandsontableView;
 
 
 /*core.EventListener = async (args, env) => {

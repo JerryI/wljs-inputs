@@ -27,7 +27,7 @@ With[{
     <script type="module">
         document.getElementById('#instanceId').addEventListener('change', function () {
             console.log(['<Event/>', '"'+this.value+'"', '<Topic/>']);
-            server.kernel.emitt('<Event/>', '"'+this.value+'"', '<Topic/>');
+            server.kernel.io.fire('<Event/>', this.value, '<Topic/>');
         })    
     </script>  
   }

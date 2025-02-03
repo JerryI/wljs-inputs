@@ -19,8 +19,8 @@ InputRaster::usage = "InputRaster[opts] _EventObject. A raster input. InputRaste
 InputText::usage = "InputText[initial_String, opts] _EventObject"
 InputFile::usage = "InputFile[opts, \"Label\"->, \"Description\"->] _EventObject"
 InputTable::usage = ""
-InputSelect::usage = "InputSelect[{val1 -> expr1, val2 -> expr2}, defaultval] _EventObject"
-InputRadio::usage = "InputRadio[{val1 -> expr1, val2 -> expr2}, defaultval] _EventObject"
+InputSelect::usage = "InputSelect[{expr1 -> val1, expr2 -> val2}, defaultexp] _EventObject"
+InputRadio::usage = "InputRadio[{expr1 -> val1, expr2 -> val2}, defaultexp] _EventObject"
 
 InputAutocomplete::usage = "InputAutocomplete[autocompleteFunction_] _EventObject"
 
@@ -32,13 +32,72 @@ TextView::usage = "TextView[symbol_, opts] shows a dynamic text-field. A general
 HTMLView::usage = "HTMLView[string, opts] will be rendered as DOM. A dynamic component"
 TableView::usage = "TableView[data_] A generalized low-level version of InputTable. Shows big chunks of data"
 
+Begin["`Tools`"]
 
-HandsontableView;
+TemplateProcessor;
+SetAttributes[TemplateProcessor, HoldFirst]
+
+AnonymousJavascript;
+SetAttributes[AnonymousJavascript, HoldFirst]
+
+EventHelper[list_] := Module[{handler, buffer, placeholder = Table[Null, {i, Length[list//First]}]},
+	handler[{"Replace", row_, col_, old_, new_}] := list[[row, col]] = ToExpression[new];
+	handler[{"Add", row_, col_, new_}] := list[[row, col]] = ToExpression[new];
+	handler[{"Remove", row_, col_, new_}] := list[[row, col]] = Null;
+
+	handler[{"RowsAdd", start_, n_}] := (buffer = list; Do[buffer = Insert[buffer, placeholder, start], {k,n}]; list = buffer);
+	handler[{"RowsRemove", start_, n_}] := (buffer = list; Do[buffer = Delete[buffer, start], {k,n}]; list = buffer);
+
+	handler[{"ColsAdd", start_, n_}] := With[{dummy = Table[Null, {i, Length[list]}]},
+		buffer = list;
+		
+			buffer = Transpose[buffer];
+			Do[
+				buffer = Insert[buffer, dummy, start];
+			, {k,n}];
+			buffer = Transpose[buffer];
+		
+		list = buffer;
+	];
+
+	handler[{"ColsRemove", start_, n_}] := With[{dummy = Table[Null, {i, Length[list]}]},
+		buffer = list;
+		
+			buffer = Transpose[buffer];
+			Do[
+				buffer = Delete[buffer, start];
+			, {k,n}];
+			buffer = Transpose[buffer];
+		
+		list = buffer;
+	];
 
 
-InternalWLXDestructor;
+	handler
+]
+
+SetAttributes[EventHelper, HoldFirst]
+
+
+IntegrationHelper[zero_List:{0,0}][function_] := IntegrationHelper[zero, 0.01][function]
+IntegrationHelper[zero_List:{0,0}, delta_][function_] := IntegrationHelper[zero, {delta, delta}][function]
+IntegrationHelper[zero_List:{0,0}, delta_List][function_] := Module[{
+	accumulated = zero,
+	handler
+},
+	handler[dxy_] := (
+		accumulated = accumulated + (dxy delta);
+		function[accumulated]
+	);
+
+	handler
+]
+
+End[]
 
 Begin["`Private`"]
+
+$ContextAliases["htmlTool`"] = "CoffeeLiqueur`Extensions`InputsOutputs`Tools`";
 
 $troot = FileNameJoin[{$RemotePackageDirectory, "templates"}];
 
@@ -49,18 +108,14 @@ Options[HTMLView] = {Epilog->Null, Prolog->Identity, "Style"->"", "Class"->""}
 
 HTMLView /: MakeBoxes[w_HTMLView, frmt_] := With[{o = CreateFrontEndObject[w]}, MakeBoxes[o, frmt] ]
 
-HTMLView`TemplateProcessor;
-SetAttributes[HTMLView`TemplateProcessor, HoldFirst]
 
-HTMLView`AnonymousJavascript;
-SetAttributes[HTMLView`AnonymousJavascript, HoldFirst]
 
 notString[_String] := False
 notString[_List] := False
 notString[_] := True
 
 HTMLView[value_?notString, opts: OptionsPattern[] ] := With[{},
-	HTMLView[ HTMLX[opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "html-string", "innerHTML"] ]
+	HTMLView[ HTMLX[opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "html-string", "innerHTML"] ]
 ]
 
 
@@ -68,7 +123,7 @@ HTMLView[value_?notString, opts: OptionsPattern[] ] := With[{},
 RangeX = ImportComponent[FileNameJoin[{$troot, "Range.wlx"}] ];
 
 InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, initial_?NumberQ, opts: OptionsPattern[] ] := With[{uid = OptionValue["Event"]},
-	EventObject[<|"Id"->uid, "Initial"->initial, "View"->HTMLView[ RangeX["Min"->min, "Max"->max, "Step"->step, "Initial"->initial, "Event"->uid, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	EventObject[<|"Id"->uid, "Initial"->initial, "View"->HTMLView[ RangeX["Min"->min, "Max"->max, "Step"->step, "Initial"->initial, "Event"->uid, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 InputRange[min_?NumberQ, max_?NumberQ, step_?NumberQ, opts: OptionsPattern[] ] := With[{middle = Round[(max + min) / 2, step]},
@@ -95,7 +150,7 @@ InputAutocomplete[autocomplete_, default_String, opts: OptionsPattern[] ] := Wit
 	     "Id"->uid, 
 	     "View"->HTMLView[ 
 	       InputAutocompleteX["Event"->uid, "Default"->default, "HandlerSymbol"->handler, opts],
-	       Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] 
+	       Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] 
 	    ]|>]
 	]
 ]
@@ -114,9 +169,9 @@ InputRaster[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], topic =
 	}];
 
 	If[MatchQ[OptionValue["OverlayImage"], _Image],
-		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{OptionValue["OverlayImage"] // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{OptionValue["OverlayImage"] // CreateFrontEndObject, handler}, Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 	,
-		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{handler}, Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 	]
 ]
 
@@ -133,7 +188,7 @@ InputRaster[img_Image, opts: OptionsPattern[] ] := With[{id = OptionValue["Event
 		Message[InputRaster::err, "OverlayImage is not supported if an Image was provided"];
 		$Failed
 	,
-		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+		EventObject[<|"Id"->id, "View"->HTMLView[RasterX["Event"->internal, opts, "Handler"->handler],  Epilog->{img // CreateFrontEndObject, handler}, Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 	]
 ]
 
@@ -146,7 +201,7 @@ Options[InputRaster] = {"AllowUpdateWhileDrawing"->False, "Topic"->"Default", "E
 Knob = ImportComponent[FileNameJoin[{$troot, "Button.wlx"}] ];
 
 InputButton[label_String:"Click", opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
-    EventObject[<|"Id"->id, "Initial"->False, "View"->HTMLView[Knob["Label"->label, "Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+    EventObject[<|"Id"->id, "Initial"->False, "View"->HTMLView[Knob["Label"->label, "Event"->id, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ];
 
 InputButton[EventObject[a_Association], rest__] := InputButton[rest, "Event" -> a["Id"] ]
@@ -158,7 +213,7 @@ Options[InputButton] = {"Class"->"", "Style"->"", "Topic"->"Default", "Event":>C
 CheckboxX = ImportComponent[FileNameJoin[{$troot, "Checkbox.wlx"}] ];
 
 InputCheckbox[initial_:False, opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
-	EventObject[<|"Id"->id, "Initial"->initial, "View"->HTMLView[CheckboxX["Checked"->initial, "Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	EventObject[<|"Id"->id, "Initial"->initial, "View"->HTMLView[CheckboxX["Checked"->initial, "Event"->id, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 InputCheckbox[EventObject[a_Association], rest_]  := InputCheckbox[rest, "Event" -> a["Id"] ]
@@ -170,7 +225,7 @@ Options[InputCheckbox] = {"Label"->"", "Description"->"", "Topic"->"Default", "E
 TextX = ImportComponent[FileNameJoin[{$troot, "Text.wlx"}] ];
 
 InputText[initial_:"", opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
-	EventObject[<|"Id"->id, "Initial"->initial, "View"->HTMLView[TextX[initial, "Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	EventObject[<|"Id"->id, "Initial"->initial, "View"->HTMLView[TextX[initial, "Event"->id, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 InputText[EventObject[a_Association], rest_]  := InputText[rest, "Event" -> a["Id"] ]
@@ -180,13 +235,13 @@ InputText[EventObject[a_Association] ] := InputText["Event" -> a["Id"] ]
 Options[InputText] = {"Label"->"", "Description"->"", "Placeholder"->"", "Topic"->"Default", "Event":>CreateUUID[], ImageSize->Automatic}
 
 TextView[value_, opts: OptionsPattern[] ] := With[{id = CreateUUID[]},
-	HTMLView[ TextX["Placeholder"->"...", "UId" -> id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "text-string", "value"] ]
+	HTMLView[ TextX["Placeholder"->"...", "UId" -> id, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>], Epilog-> InternalElementUpdate[value, "text-string", "value"] ]
 ]
 
 JoystickX = ImportComponent[FileNameJoin[{$troot, "Joystick.wlx"}] ];
 
 InputJoystick[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"]},
-	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{HTMLView[JoystickX["Event"->id, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ], InternalWLXDestructor[id]}|>]
+	EventObject[<|"Id"->id, "Initial"->{0,0}, "View"->{HTMLView[JoystickX["Event"->id, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ], InternalWLXDestructor[id]}|>]
 ]
 
 InputJoystick[EventObject[a_Association], rest_]  := InputJoystick[rest, "Event" -> a["Id"] ]
@@ -195,19 +250,6 @@ InputJoystick[EventObject[a_Association] ] := InputJoystick["Event" -> a["Id"] ]
 
 Options[InputJoystick] = {"Topic"->"Default", "Event":>CreateUUID[]}
 
-InputJoystick`IntegrationHelper[zero_List:{0,0}][function_] := InputJoystick`IntegrationHelper[zero, 0.01][function]
-InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_][function_] := InputJoystick`IntegrationHelper[zero, {delta, delta}][function]
-InputJoystick`IntegrationHelper[zero_List:{0,0}, delta_List][function_] := Module[{
-	accumulated = zero,
-	handler
-},
-	handler[dxy_] := (
-		accumulated = accumulated + (dxy delta);
-		function[accumulated]
-	);
-
-	handler
-]
 
 TextView /: MakeBoxes[t_TextView, frmt_] := With[{o = CreateFrontEndObject[t]},
 	MakeBoxes[o, frmt]
@@ -242,7 +284,7 @@ InputFile[opts: OptionsPattern[] ] := With[{id = OptionValue["Event"], internal 
 		] ]
 	}];
 
-	EventObject[<|"Id"->id, "View"->HTMLView[DropX["Event"->internal, opts], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
+	EventObject[<|"Id"->id, "View"->HTMLView[DropX["Event"->internal, opts], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]
 ]
 
 Options[InputFile] = {"Label"->"Drop file", "Event":>CreateUUID[]}
@@ -279,7 +321,7 @@ InputRadio[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{asso
 		EventFire[uid, OptionValue["Topic"], assoc[[selected, "Value"]] ]
 	]}];
 
-	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->HTMLView[RadioX[ "List" -> ({assoc[#, "Name"], #}&/@ Keys[assoc]), "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
+	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->HTMLView[RadioX[ "List" -> ({assoc[#, "Name"], #}&/@ Keys[assoc]), "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
 ] ]
 
 Options[InputRadio] = {"Label" -> "", "Topic" -> "Default", "Event":>CreateUUID[]}
@@ -294,7 +336,7 @@ InputSelect[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{ass
 		id = CreateUUID[], 
 		uid = OptionValue["Event"], 
 		Selected = If[DefaultItem === Null,
-			ToString @ Hash[apt // First // First]
+			ToString @ Hash[apt // First // Last]
 		,
 			ToString @ Hash[DefaultItem]
 		]
@@ -315,7 +357,7 @@ InputSelect[apt_List, DefaultItem_:Null, opts: OptionsPattern[] ] := Module[{ass
 		EventFire[uid, OptionValue["Topic"], assoc[selected, "Value"] ]
 	]}];
 
-	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->HTMLView[SelectX[ #["Name"]&/@ assoc, "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->HTMLView`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
+	EventObject[<|"Id"->uid, "Initial"->assoc[Selected, "Value"], "View"->HTMLView[SelectX[ #["Name"]&/@ assoc, "Event"->id, "Selected"->Selected, "Label"->OptionValue["Label"] ], Prolog->htmlTool`TemplateProcessor[<|"instanceId" -> CreateUUID[]|>] ]|>]	
 ] ]
 
 InputSelect[EventObject[a_Association], rest_]  := InputSelect[rest, "Event" -> a["Id"] ]
@@ -653,48 +695,10 @@ DatasetWrapperBox[ l : List[__Association] ,  StandardForm] := With[{
 ]
 
 
-CoffeeLiqueur`Extensions`InputsOutputs`DatasetMakeBox[expr_String, uid_String] := CreateFrontEndObject[EditorView[ToString[ImportString[ToString[expr // URLDecode, OutputForm, CharacterEncoding -> "UTF8"], "ExpressionJSON"], StandardForm], "ReadOnly"->True, "Selectable"->False], uid]
+DatasetMakeBox[expr_String, uid_String] := CreateFrontEndObject[EditorView[ToString[ImportString[ToString[expr // URLDecode, OutputForm, CharacterEncoding -> "UTF8"], "ExpressionJSON"], StandardForm], "ReadOnly"->True, "Selectable"->False], uid]
 
 
 HandsontableView /: MakeBoxes[v_HandsontableView, StandardForm] := With[{o = CreateFrontEndObject[v]}, MakeBoxes[o, StandardForm] ]
-
-InputTable`EventHelper[list_] := Module[{handler, buffer, placeholder = Table[Null, {i, Length[list//First]}]},
-	handler[{"Replace", row_, col_, old_, new_}] := list[[row, col]] = ToExpression[new];
-	handler[{"Add", row_, col_, new_}] := list[[row, col]] = ToExpression[new];
-	handler[{"Remove", row_, col_, new_}] := list[[row, col]] = Null;
-
-	handler[{"RowsAdd", start_, n_}] := (buffer = list; Do[buffer = Insert[buffer, placeholder, start], {k,n}]; list = buffer);
-	handler[{"RowsRemove", start_, n_}] := (buffer = list; Do[buffer = Delete[buffer, start], {k,n}]; list = buffer);
-
-	handler[{"ColsAdd", start_, n_}] := With[{dummy = Table[Null, {i, Length[list]}]},
-		buffer = list;
-		
-			buffer = Transpose[buffer];
-			Do[
-				buffer = Insert[buffer, dummy, start];
-			, {k,n}];
-			buffer = Transpose[buffer];
-		
-		list = buffer;
-	];
-
-	handler[{"ColsRemove", start_, n_}] := With[{dummy = Table[Null, {i, Length[list]}]},
-		buffer = list;
-		
-			buffer = Transpose[buffer];
-			Do[
-				buffer = Delete[buffer, start];
-			, {k,n}];
-			buffer = Transpose[buffer];
-		
-		list = buffer;
-	];
-
-
-	handler
-]
-
-SetAttributes[InputTable`EventHelper, HoldFirst]
 
 
 listener[p_, list_, uid_] := With[{}, With[{
@@ -729,3 +733,7 @@ WindowObj /: EventClone[w_WindowObj] := With[{},
 
 End[]
 EndPackage[]
+
+$ContextAliases["HTMLView`"] = "CoffeeLiqueur`Extensions`InputsOutputs`Tools`";
+$ContextAliases["InputTable`"] = "CoffeeLiqueur`Extensions`InputsOutputs`Tools`";
+$ContextAliases["InputJoystick`"] = "CoffeeLiqueur`Extensions`InputsOutputs`Tools`";
